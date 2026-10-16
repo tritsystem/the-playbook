@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Invariant Field Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like a bench notebook; each lesson is a page with its evidence log, a predict check and recall cards. */
+:root {
+  --paper: #f3f5f2; --ink: #1d2422; --muted: #56625e; --rule: #cfd8d3;
+  --card: #ffffff; --accent: #0f7a6c; --accent-ink: #ffffff;
+  --good: #1f7a3a; --bad: #a3342b; --tint: #e3eee9;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #121816; --ink: #e4ebe8; --muted: #9aa8a3; --rule: #2b3532;
+  --card: #1a2220; --accent: #4fc2ae; --accent-ink: #0d1412;
+  --good: #6fcf8a; --bad: #f08a7f; --tint: #1f2b28; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #121816; --ink: #e4ebe8; --muted: #9aa8a3; --rule: #2b3532;
+  --card: #1a2220; --accent: #4fc2ae; --accent-ink: #0d1412;
+  --good: #6fcf8a; --bad: #f08a7f; --tint: #1f2b28; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55 }
+.wrap { max-width: 42rem; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 28px }
+header { display: grid; gap: 6px }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+h1 { font-family: var(--display); font-weight: 600; font-size: 2rem; line-height: 1.15; margin: 0; text-wrap: balance }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.45rem; line-height: 1.2; margin: 0; text-wrap: balance }
+h3 { font-size: 1rem; margin: 0; letter-spacing: .02em }
+p { margin: 0 }
+.lede { color: var(--muted) }
+section.lesson { display: grid; gap: 16px; border-top: 2px solid var(--ink); padding-top: 16px }
+.tag { font-family: var(--mono); font-size: 12px; color: var(--accent) }
+.hook { font-style: italic }
+ol.rules { margin: 0; padding-left: 1.3rem; display: grid; gap: 8px }
+.log { display: grid; gap: 0; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--card) }
+.log div { display: grid; grid-template-columns: 3.6rem 1fr; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--rule) }
+.log div:first-child { border-top: 0 }
+.log b { font-family: var(--mono); font-size: 12px; color: var(--accent); padding-top: 3px }
+.log span { min-width: 0; font-size: 15px }
+code { font-family: var(--mono); font-size: .86em; background: var(--tint); padding: 1px 4px; border-radius: 3px; word-break: break-word }
+.trap { border-left: 3px solid var(--bad); padding: 4px 0 4px 12px; font-size: 15px }
+.trap strong { color: var(--bad) }
+.check { display: grid; gap: 10px; background: var(--tint); padding: 14px; border-radius: 6px }
+.opts { display: grid; gap: 8px }
+.opts button { text-align: left; font: inherit; font-size: 15px; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; cursor: pointer }
+.opts button:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.opts button.right { border-color: var(--good); box-shadow: inset 4px 0 0 var(--good) }
+.opts button.wrong { border-color: var(--bad); box-shadow: inset 4px 0 0 var(--bad) }
+.why { font-size: 15px }
+.cards { display: grid; gap: 10px }
+.card { display: grid; gap: 6px; text-align: left; font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; cursor: pointer; width: 100% }
+.card .q { font-weight: 700; font-size: 15px }
+.card .a { font-size: 15px; color: var(--ink) }
+.card .hint { font-family: var(--mono); font-size: 11px; color: var(--muted) }
+.task { display: grid; gap: 8px; font-size: 15px }
+.task ul { margin: 0; padding-left: 1.2rem }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 12px }
+@media (prefers-reduced-motion: no-preference) { .opts button, .card { transition: border-color .15s } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Senior lab · lessons 22–23 · 16 Oct 2026</span>
+  <h1>Invariant Field Notes</h1>
+  <p class="lede">One pre-registered sweep of MONAI flagged about a dozen things. Three were real bugs. The rest were the harness, randomness by design, or issues already filed. Then one signed-off commit closed a pull request for good, and 21 red CI jobs turned out to be one broken runner.</p>
+</header>
+
+<section class="lesson" aria-labelledby="l22">
+  <span class="tag">L22 · ML systems · 10 min</span>
+  <h2 id="l22">Three invariants that found three bugs</h2>
+  <p class="hook">Every check compares against an independent reference: the batch-of-one result, the fp32 result, the eager result. Never just "old version versus new version".</p>
+  <ol class="rules">
+    <li><strong>Batch independence.</strong> A sample's result must not change when its batchmates change. Score it alone, then next to something very different.</li>
+    <li><strong>Half precision.</strong> Autocast and <code>.half()</code> are different. Test the whole-model cast, and check fp32 activation sizes before calling an fp16 overflow a bug.</li>
+    <li><strong>Lazy versus eager.</strong> Compare metadata (affine, spacing, origin), not only pixels. A bug can live entirely in metadata.</li>
+    <li><strong>Control the harness first.</strong> Same input twice (randomness), the imported module path (stale install), and known or documented differences.</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>T4</b><span>Mutual-information loss (b-spline) binned with the <em>whole batch's</em> min and max. Image A: <code>-1.279</code> alone, <code>-0.196</code> batched. Fix: per-sample <code>amin</code>/<code>amax</code>.</span></div>
+    <div role="listitem"><b>T4</b><span>VQVAE crashed after <code>.half()</code>: the quantizer upcast its inputs but not its codebook. Fixed: bf16/fp16 within 0.45% / 0.06% of fp32, same codes chosen.</span></div>
+    <div role="listitem"><b>T4</b><span>Lazy crop on a 2D image returned a 3×3 affine. Saved to NIfTI: spacing 1.0, origin 0.0 instead of 2.0, 1.0. Pixels were identical.</span></div>
+    <div role="listitem"><b>art.</b><span>Rejected: two autoencoders that are random in eval, an fp16 NaN from random-init activations of 1.1e7, and a sweep that imported a stale global install.</span></div>
+  </div>
+  <p class="trap"><strong>Trap:</strong> a harness violation is a bug. Half the flags here were randomness, random-init overflow, a stale install or a known issue.</p>
+  <div class="check" data-correct="1">
+    <h3>Predict</h3>
+    <p>A masked autoencoder gives a different output for sample 0 when you change sample 1. Before calling it cross-sample leakage, what do you check?</p>
+    <div class="opts">
+      <button type="button" id="q1a">Nothing. The difference proves leakage.</button>
+      <button type="button" id="q1b">Run the same unchanged input twice.</button>
+      <button type="button" id="q1c">Switch to a bigger batch.</button>
+      <button type="button" id="q1d">Loosen the tolerance until it passes.</button>
+    </div>
+    <p class="why" hidden>Masked autoencoders draw a random mask on every forward pass, even in eval. If the same input twice already differs, the batch test can't tell leakage from randomness.</p>
+  </div>
+  <div class="task">
+    <h3>Produce</h3>
+    <p>You're handed a new loss and a new segmentation model. Write, in your own words, the checks you'd run. A good answer covers:</p>
+    <ul><li>batch of one versus batched with a very different batchmate</li><li>whole-model half/bf16 cast against fp32</li><li>a harness control: same input twice, the import path, known issues</li></ul>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="l23">
+  <span class="tag">L23 · Workflow · 8 min</span>
+  <h2 id="l23">Landing work: policy first, shallow clones, red CI</h2>
+  <ol class="rules">
+    <li>Read the contribution and AI policy before investing effort. It can rule a repo out entirely.</li>
+    <li>Claims hide in comments and in PRs that cite a different issue number. Search before starting.</li>
+    <li>Never amend or rebase in a shallow clone. Unshallow first, and after any force-push confirm the PR is still open with a merge base.</li>
+    <li>On red CI, read which step failed. Setup, upload and label steps aren't your code. Compare the same workflow on main.</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>git</b><span>A sign-off amended in a depth-1 clone made a parentless commit. Force-pushed, NeMo #16334 had no common ancestor with main and auto-closed. Reopen was refused, so it became #16397.</span></div>
+    <div role="listitem"><b>CI</b><span>pytorch #196170: all 21 jobs died at <code>git init: Permission denied</code> before checkout. chia #21419: every test passed; only a coverage upload and a label check failed.</span></div>
+    <div role="listitem"><b>scan</b><span>8 responsive repos: timm had only feature requests, kornia 96% claimed, torchgeo bans LLM use, torchmetrics #3446 already had a PR. MONAI (55 of 56 outside PRs merged) became the target.</span></div>
+  </div>
+  <p class="trap"><strong>Trap:</strong> red CI means my code is broken, so I start changing code.</p>
+  <div class="check" data-correct="1">
+    <h3>Predict</h3>
+    <p>All 21 CI jobs fail in the "Setup Linux" step with <code>git init: Permission denied</code>. Most likely cause?</p>
+    <div class="opts">
+      <button type="button" id="q2a">A bug in your change.</button>
+      <button type="button" id="q2b">A broken CI runner. It fails before your code is checked out.</button>
+      <button type="button" id="q2c">A missing test.</button>
+      <button type="button" id="q2d">A lint error in your file.</button>
+    </div>
+    <p class="why" hidden>The failure happens before checkout, so no line of your change has run yet. It's the runner environment.</p>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="recall">
+  <span class="tag">Recall · tap a card to reveal</span>
+  <h2 id="recall">Six cards</h2>
+  <div class="cards">
+    <button type="button" class="card" id="c1"><span class="q">How do you check a loss doesn't mix samples across a batch?</span><span class="a" hidden>Score each sample alone, then batched next to a very different batchmate; the values must match. Run the same input twice first, because some models are random in eval.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c2"><span class="q">Works under autocast, crashes after <code>.half()</code>. Why can both be true?</span><span class="a" hidden>Autocast keeps weights fp32 and casts per op; <code>.half()</code> casts the weights. Code that upcasts only its inputs then mixes fp32 and fp16 operands.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c3"><span class="q">What does comparing only pixels miss in a lazy pipeline?</span><span class="a" hidden>Metadata. The lazy crop kept the pixels right and dropped the affine's out-of-plane spacing and origin.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c4"><span class="q">Why never amend in a depth-1 clone?</span><span class="a" hidden>The parent is hidden, so the amend makes a root commit. Force-pushed, the PR has no common ancestor and GitHub auto-closes it for good.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c5"><span class="q">21 failed CI jobs. First move?</span><span class="a" hidden>Open one and read which step failed, then compare the same workflow on main. Touch code only if the failing step ran your change.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c6"><span class="q">Before working a repo's issues, what do you check?</span><span class="a" hidden>Its AI and contribution policy, and whether someone already claimed the issue in comments or a linked PR.</span><span class="hint">tap to reveal</span></button>
+  </div>
+</section>
+
+<footer>Compressed from senior-lab lessons L22–L23 (web/curriculum.js), built from the 16 Oct 2026 MONAI hunt and PR-landing work. Every number here was measured, not estimated.</footer>
+</div>
+
+<script>
+(function () {
+  var checks = document.querySelectorAll('.check');
+  Array.prototype.forEach.call(checks, function (box) {
+    var right = Number(box.getAttribute('data-correct'));
+    var btns = box.querySelectorAll('.opts button');
+    var why = box.querySelector('.why');
+    Array.prototype.forEach.call(btns, function (b, i) {
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(btns, function (x) { x.classList.remove('right', 'wrong'); });
+        b.classList.add(i === right ? 'right' : 'wrong');
+        if (i !== right) { btns[right].classList.add('right'); }
+        why.hidden = false;
+      });
+    });
+  });
+  var cards = document.querySelectorAll('.card');
+  Array.prototype.forEach.call(cards, function (c) {
+    c.addEventListener('click', function () {
+      var a = c.querySelector('.a'), h = c.querySelector('.hint');
+      a.hidden = !a.hidden;
+      h.textContent = a.hidden ? 'tap to reveal' : 'tap to hide';
+    });
+  });
+})();
+</script>
+</body>
+</html>
