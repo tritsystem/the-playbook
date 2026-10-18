@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Regex, Shape Not Meaning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like a bench notebook; each lesson is a page with its evidence log, a predict check and recall cards. */
+:root {
+  --paper: #f3f5f2; --ink: #1d2422; --muted: #56625e; --rule: #cfd8d3;
+  --card: #ffffff; --accent: #0f7a6c; --accent-ink: #ffffff;
+  --good: #1f7a3a; --bad: #a3342b; --tint: #e3eee9;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #121816; --ink: #e4ebe8; --muted: #9aa8a3; --rule: #2b3532;
+  --card: #1a2220; --accent: #4fc2ae; --accent-ink: #0d1412;
+  --good: #6fcf8a; --bad: #f08a7f; --tint: #1f2b28; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #121816; --ink: #e4ebe8; --muted: #9aa8a3; --rule: #2b3532;
+  --card: #1a2220; --accent: #4fc2ae; --accent-ink: #0d1412;
+  --good: #6fcf8a; --bad: #f08a7f; --tint: #1f2b28; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55 }
+.wrap { max-width: 42rem; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 28px }
+header { display: grid; gap: 6px }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+h1 { font-family: var(--display); font-weight: 600; font-size: 2rem; line-height: 1.15; margin: 0; text-wrap: balance }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.45rem; line-height: 1.2; margin: 0; text-wrap: balance }
+h3 { font-size: 1rem; margin: 0; letter-spacing: .02em }
+p { margin: 0 }
+.lede { color: var(--muted) }
+section.lesson { display: grid; gap: 16px; border-top: 2px solid var(--ink); padding-top: 16px }
+.tag { font-family: var(--mono); font-size: 12px; color: var(--accent) }
+.hook { font-style: italic }
+ol.rules { margin: 0; padding-left: 1.3rem; display: grid; gap: 8px }
+.log { display: grid; gap: 0; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--card) }
+.log div { display: grid; grid-template-columns: 3.6rem 1fr; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--rule) }
+.log div:first-child { border-top: 0 }
+.log b { font-family: var(--mono); font-size: 12px; color: var(--accent); padding-top: 3px }
+.log span { min-width: 0; font-size: 15px }
+code { font-family: var(--mono); font-size: .86em; background: var(--tint); padding: 1px 4px; border-radius: 3px; word-break: break-word }
+pre { font-family: var(--mono); font-size: 13px; background: var(--tint); padding: 10px 12px; border-radius: 6px; overflow-x: auto; margin: 0 }
+.trap { border-left: 3px solid var(--bad); padding: 4px 0 4px 12px; font-size: 15px }
+.trap strong { color: var(--bad) }
+.check { display: grid; gap: 10px; background: var(--tint); padding: 14px; border-radius: 6px }
+.opts { display: grid; gap: 8px }
+.opts button { text-align: left; font: inherit; font-size: 15px; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; cursor: pointer }
+.opts button:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.opts button.right { border-color: var(--good); box-shadow: inset 4px 0 0 var(--good) }
+.opts button.wrong { border-color: var(--bad); box-shadow: inset 4px 0 0 var(--bad) }
+.why { font-size: 15px }
+.cards { display: grid; gap: 10px }
+.card { display: grid; gap: 6px; text-align: left; font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; cursor: pointer; width: 100% }
+.card .q { font-weight: 700; font-size: 15px }
+.card .a { font-size: 15px; color: var(--ink) }
+.card .hint { font-family: var(--mono); font-size: 11px; color: var(--muted) }
+.task { display: grid; gap: 8px; font-size: 15px }
+.task ul { margin: 0; padding-left: 1.2rem }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 12px }
+@media (prefers-reduced-motion: no-preference) { .opts button, .card { transition: border-color .15s } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Senior lab · lessons 27–29 · 18 Oct 2026</span>
+  <h1>Regex, Shape Not Meaning</h1>
+  <p class="lede">A regex only ever recognizes the SHAPE of text, never what it means. Three lessons from building a teaching tool around that one fact: what regex actually is, a reusable defense that fixes its blind spots, and a lesson about testing your own fix the same way you'd test anyone else's code — because it broke the first time it was run.</p>
+</header>
+
+<section class="lesson" aria-labelledby="l27">
+  <span class="tag">L27 · Regex basics · 10 min</span>
+  <h2 id="l27">A pattern knows shape, never meaning</h2>
+  <p class="hook">The entire CDAP bug from a previous lesson lives inside one short pattern. Read slowly, it explains itself.</p>
+  <ol class="rules">
+    <li><code>[...]</code> is a character class — match any ONE character from the set inside the brackets.</li>
+    <li><code>+</code> means "one or more" of whatever came right before it.</li>
+    <li>So <code>[.a-zA-Z0-9_-]+</code> matches any string built ENTIRELY from: a dot, letters, digits, underscore, hyphen — nothing else.</li>
+    <li>A string made of nothing but dots — <code>".."</code> — is built entirely from characters in that set. It matches. The regex has no idea <code>".."</code> means "go up a directory" in a filesystem; it only ever sees a shape, never a meaning.</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>pattern</b><span><code>[.a-zA-Z0-9_-]+</code> — the real artifact-name/version check from the CDAP finding.</span></div>
+    <div role="listitem"><b>passes</b><span><code>"my-plugin"</code>, <code>"1.0.0"</code>, and <code>".."</code> — all three are built only from allowed characters.</span></div>
+    <div role="listitem"><b>combined example</b><span>TensorFlow Serving's real URL matcher: <code>/v1/models/([^/:]+)(?:/versions/(\d+))?:(classify|regress|predict)</code>. Four ideas stacked: <code>[^/:]+</code> is a NEGATED class ("anything except slash or colon"), <code>(\d+)</code> captures digits, <code>(?:...)?</code> makes a whole group optional, <code>(a|b|c)</code> picks exactly one of three words.</span></div>
+    <div role="listitem"><b>anchors matter</b><span><code>^[a-zA-Z_][a-zA-Z0-9_]*$</code> — the <code>^</code> and <code>$</code> pin BOTH ends. Without them, a string like <code>"3x; rm -rf /"</code> can still "match" just because some piece of it looks right.</span></div>
+  </div>
+  <p class="trap"><strong>Trap:</strong> treating "it passed the regex" as "it's safe." Those are two different claims. One is about shape. The other is about consequences.</p>
+  <div class="check" data-correct="2">
+    <h3>Predict</h3>
+    <p>A regex <code>[.a-zA-Z0-9_-]+</code> is used to validate a filename before it gets joined into a path. What's the actual gap?</p>
+    <div class="opts">
+      <button type="button" id="q1a">The regex has a typo in the character ranges.</button>
+      <button type="button" id="q1b">The regex is too short to be safe.</button>
+      <button type="button" id="q1c">A string made of only dots satisfies the pattern, but means "go up a directory" once it reaches a path-join call — the regex can't know that.</button>
+      <button type="button" id="q1d">Regexes can't check filenames at all.</button>
+    </div>
+    <p class="why" hidden>The pattern is doing exactly what it was written to do — checking character shape. The bug is trusting that check to also mean "safe to use as a path segment," which is a completely different, unchecked claim.</p>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="l28">
+  <span class="tag">L28 · Semantic defense · 12 min</span>
+  <h2 id="l28">Check the pattern again, after it changes</h2>
+  <p class="hook">Two real bugs this session share one root cause: a value gets checked once, then something ELSE transforms it — and nobody checks the transformed version.</p>
+  <ol class="rules">
+    <li>TensorFlow Serving's real bug: the URL is checked against a regex BEFORE being percent-decoded. A name like <code>foo%2F..%2F..%2Fbar</code> has no raw slash, so it passes — then decoding turns it into <code>foo/../../bar</code>, which nobody re-checks.</li>
+    <li>The fix is not a cleverer regex. It's a three-step shape: check the raw value, transform it (decode, resolve, whatever the real code does next), then run the SAME check again on the transformed value.</li>
+    <li>Add one more piece — containment: does the final, resolved value still live where it's supposed to? A regex can never answer that; only resolving the real path and checking it can.</li>
+    <li>Double-encoding (encode the payload twice) defeats a guard that only decodes once. The fix: decode repeatedly until the value stops changing, not a fixed number of times — with a safety cap so a crafted input can't loop forever.</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>guard</b><span>A small reusable class: <code>require()</code> adds a check, <code>normalize()</code> adds a transform, <code>repeat_until_stable()</code> decodes to a fixpoint.</span></div>
+    <div role="listitem"><b>catch</b><span>Run for real against <code>foo%252E%252E%252Fsecret</code> (double-encoded <code>../secret</code>): a guard that decodes once lets it through; the fixpoint version decodes it fully to <code>foo../secret</code> first, then correctly blocks it.</span></div>
+    <div role="listitem"><b>containment</b><span>CDAP's fix, in this same shape: resolve the final path, then ask "is this still inside the folder it was supposed to land in?" — <code>Path.relative_to(root)</code> in Python, the same idea in any language.</span></div>
+  </div>
+  <div class="check" data-correct="1">
+    <h3>Predict</h3>
+    <p>A guard checks a value, decodes it once, and stops. What real attack walks straight past it?</p>
+    <div class="opts">
+      <button type="button" id="q2a">Using an unusually long string.</button>
+      <button type="button" id="q2b">Encoding the dangerous payload TWICE — the guard's one decode only removes the first layer, leaving something still encoded, and never re-checked.</button>
+      <button type="button" id="q2c">Using all uppercase letters.</button>
+      <button type="button" id="q2d">Sending the request at an unusual time of day.</button>
+    </div>
+    <p class="why" hidden>Decode-once guards are a very common "quick fix" shape, and double-encoding is exactly the well-known attack built to defeat that specific shape. The honest fix is decoding to a fixpoint, not decoding once and declaring victory.</p>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="l29">
+  <span class="tag">L29 · Testing your own fix · 10 min</span>
+  <h2 id="l29">Your own defense needs the same proof anyone else's code needs</h2>
+  <p class="hook">Building the general version of the guard above produced a real bug — immediately, the first time it actually ran.</p>
+  <ol class="rules">
+    <li>The first version re-ran EVERY check that had already passed, after EVERY later transform, automatically, no exceptions.</li>
+    <li>That seemed like the more thorough, more "universal" choice. It is also wrong whenever a check was written for one shape of value (a tuple: name and version together) and a later transform changes the value into a different shape (a single resolved path string).</li>
+    <li>Run against a perfectly valid case, the auto-recheck replayed the tuple-shaped check against a plain string. Indexing a string like a tuple does something that looks like code running — and quietly returns the wrong answer instead of raising an error.</li>
+    <li>A completely valid, safe input got incorrectly blocked. Found by running the thing, not by reading the code and trusting it.</li>
+    <li>The real fix: re-checking is something each check opts into by name, not something that happens automatically to everything. "More automatic" is not the same thing as "more correct."</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>input</b><span><code>("my-plugin", "1.0.0")</code> — a completely ordinary, valid artifact name and version.</span></div>
+    <div role="listitem"><b>expected</b><span>Accepted.</span></div>
+    <div role="listitem"><b>actual, first version</b><span>Incorrectly BLOCKED. The regex check (written for a tuple) got silently replayed against the resolved path string after the path-resolve step.</span></div>
+    <div role="listitem"><b>fix</b><span>Added an explicit <code>recheck=True</code> flag per check. Only checks that are genuinely still valid against a later, transformed value get replayed — nothing replays by default.</span></div>
+  </div>
+  <p class="trap"><strong>Trap:</strong> assuming your OWN new tool is correct because you understand the intent behind it. Intent is not proof. Running it against real cases — including the boring, obviously-fine ones — is.</p>
+  <div class="check" data-correct="0">
+    <h3>Predict</h3>
+    <p>You write a "more thorough" version of a safety check that automatically re-applies every earlier check after every later step. What should you do before trusting it?</p>
+    <div class="opts">
+      <button type="button" id="q3a">Run it against both a known-bad case AND a known-good case — "more thorough" isn't the same claim as "still correct," and only running it against both proves which one it actually is.</button>
+      <button type="button" id="q3b">Ship it — more checks is always safer.</button>
+      <button type="button" id="q3c">Only test it against the one bad case it was designed to catch.</button>
+      <button type="button" id="q3d">Read the code one more time, carefully.</button>
+    </div>
+    <p class="why" hidden>A stricter-looking check can still be wrong in a new way — here, a type mismatch that silently returned a bogus answer instead of erroring. Only running it against a real valid case caught that; re-reading the same code a second time would not have.</p>
+  </div>
+  <div class="task">
+    <h3>Produce</h3>
+    <p>Think of a validation or safety check you've written (a form validator, an input sanitizer, anything with an "accept/reject" answer). Write down one completely ordinary, valid input you have NOT actually run through it. Run it. If it's rejected, you've just found the same class of bug as this lesson, for free.</p>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="recall">
+  <span class="tag">Recall · tap a card to reveal</span>
+  <h2 id="recall">Six cards</h2>
+  <div class="cards">
+    <button type="button" class="card" id="c1"><span class="q">What does a regex actually recognize — shape, or meaning?</span><span class="a" hidden>Only shape. It matches character patterns; it has no concept of what those characters mean in context, like ".." meaning "parent directory."</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c2"><span class="q">Why does checking a value BEFORE decoding it create a real gap?</span><span class="a" hidden>Because the decoded value can contain characters the regex would have rejected, and if nobody re-checks after decoding, that transformed, dangerous value sails through anyway.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c3"><span class="q">Why does double-encoding defeat a guard that decodes exactly once?</span><span class="a" hidden>One decode only strips the outer layer of encoding, leaving a still-encoded dangerous value that the guard never looks at again. Decoding to a fixpoint (repeat until nothing changes) closes that gap.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c4"><span class="q">What's the three-part shape that fixes a decode-ordering bug?</span><span class="a" hidden>Check the raw value, transform it the same way the real code does, then run the SAME check again on the transformed value — plus a separate containment check for anything that resolves to a location.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c5"><span class="q">What went wrong building the "more thorough" universal guard?</span><span class="a" hidden>It auto-replayed a check written for one value's shape (a tuple) against a later, differently-shaped value (a string) — and silently produced a wrong answer instead of an error, incorrectly blocking a valid input.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c6"><span class="q">What's the actual lesson from that bug — not the fix, the habit?</span><span class="a" hidden>Your own new tool gets the same "run it against real cases, including the boring valid ones" treatment as anyone else's code. Understanding your own intent isn't proof it does what you meant.</span><span class="hint">tap to reveal</span></button>
+  </div>
+</section>
+
+<footer>Compressed from senior-lab lessons L27–L29, built from the regex/SemanticGuard section of the 18 Oct 2026 lab-console session (CDAP's path-traversal regex, TensorFlow Serving's decode-ordering bug, and the recheck bug found by actually running the generalized guard). Every example and every number here was run for real, not estimated.</footer>
+</div>
+
+<script>
+(function () {
+  var checks = document.querySelectorAll('.check');
+  Array.prototype.forEach.call(checks, function (box) {
+    var right = Number(box.getAttribute('data-correct'));
+    var btns = box.querySelectorAll('.opts button');
+    var why = box.querySelector('.why');
+    Array.prototype.forEach.call(btns, function (b, i) {
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(btns, function (x) { x.classList.remove('right', 'wrong'); });
+        b.classList.add(i === right ? 'right' : 'wrong');
+        if (i !== right) { btns[right].classList.add('right'); }
+        why.hidden = false;
+      });
+    });
+  });
+  var cards = document.querySelectorAll('.card');
+  Array.prototype.forEach.call(cards, function (c) {
+    c.addEventListener('click', function () {
+      var a = c.querySelector('.a'), h = c.querySelector('.hint');
+      a.hidden = !a.hidden;
+      h.textContent = a.hidden ? 'tap to reveal' : 'tap to hide';
+    });
+  });
+})();
+</script>
+</body>
+</html>
