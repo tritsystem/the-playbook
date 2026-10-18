@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sibling Ports and Stray Dots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like a bench notebook; each lesson is a page with its evidence log, a predict check and recall cards. */
+:root {
+  --paper: #f3f5f2; --ink: #1d2422; --muted: #56625e; --rule: #cfd8d3;
+  --card: #ffffff; --accent: #0f7a6c; --accent-ink: #ffffff;
+  --good: #1f7a3a; --bad: #a3342b; --tint: #e3eee9;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #121816; --ink: #e4ebe8; --muted: #9aa8a3; --rule: #2b3532;
+  --card: #1a2220; --accent: #4fc2ae; --accent-ink: #0d1412;
+  --good: #6fcf8a; --bad: #f08a7f; --tint: #1f2b28; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #121816; --ink: #e4ebe8; --muted: #9aa8a3; --rule: #2b3532;
+  --card: #1a2220; --accent: #4fc2ae; --accent-ink: #0d1412;
+  --good: #6fcf8a; --bad: #f08a7f; --tint: #1f2b28; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.55 }
+.wrap { max-width: 42rem; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 28px }
+header { display: grid; gap: 6px }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+h1 { font-family: var(--display); font-weight: 600; font-size: 2rem; line-height: 1.15; margin: 0; text-wrap: balance }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.45rem; line-height: 1.2; margin: 0; text-wrap: balance }
+h3 { font-size: 1rem; margin: 0; letter-spacing: .02em }
+p { margin: 0 }
+.lede { color: var(--muted) }
+section.lesson { display: grid; gap: 16px; border-top: 2px solid var(--ink); padding-top: 16px }
+.tag { font-family: var(--mono); font-size: 12px; color: var(--accent) }
+.hook { font-style: italic }
+ol.rules { margin: 0; padding-left: 1.3rem; display: grid; gap: 8px }
+.log { display: grid; gap: 0; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--card) }
+.log div { display: grid; grid-template-columns: 3.6rem 1fr; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--rule) }
+.log div:first-child { border-top: 0 }
+.log b { font-family: var(--mono); font-size: 12px; color: var(--accent); padding-top: 3px }
+.log span { min-width: 0; font-size: 15px }
+code { font-family: var(--mono); font-size: .86em; background: var(--tint); padding: 1px 4px; border-radius: 3px; word-break: break-word }
+.trap { border-left: 3px solid var(--bad); padding: 4px 0 4px 12px; font-size: 15px }
+.trap strong { color: var(--bad) }
+.check { display: grid; gap: 10px; background: var(--tint); padding: 14px; border-radius: 6px }
+.opts { display: grid; gap: 8px }
+.opts button { text-align: left; font: inherit; font-size: 15px; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; cursor: pointer }
+.opts button:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.opts button.right { border-color: var(--good); box-shadow: inset 4px 0 0 var(--good) }
+.opts button.wrong { border-color: var(--bad); box-shadow: inset 4px 0 0 var(--bad) }
+.why { font-size: 15px }
+.cards { display: grid; gap: 10px }
+.card { display: grid; gap: 6px; text-align: left; font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; cursor: pointer; width: 100% }
+.card .q { font-weight: 700; font-size: 15px }
+.card .a { font-size: 15px; color: var(--ink) }
+.card .hint { font-family: var(--mono); font-size: 11px; color: var(--muted) }
+.task { display: grid; gap: 8px; font-size: 15px }
+.task ul { margin: 0; padding-left: 1.2rem }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 12px }
+@media (prefers-reduced-motion: no-preference) { .opts button, .card { transition: border-color .15s } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Senior lab · lessons 24–26 · 17 Oct 2026</span>
+  <h1>Sibling Ports and Stray Dots</h1>
+  <p class="lede">One real bug this session came from a regex that forgot a string made of nothing but dots is still a valid string. A second lead came from not reading a program's own rules before trusting its web form. A third came from a method invented on the spot: take a defense you've already proven real in one codebase, and go check whether the project's own sibling ports actually carried it over.</p>
+</header>
+
+<section class="lesson" aria-labelledby="l24">
+  <span class="tag">L24 · Path traversal · 12 min</span>
+  <h2 id="l24">A regex that blocks slashes, not dots</h2>
+  <p class="hook">The whole bug is five steps, and none of them are exotic.</p>
+  <ol class="rules">
+    <li>Something gets a name: an artifact, a model, a file. Supplied by whoever calls the API.</li>
+    <li>The name is checked against a regex. It blocks <code>/</code>, so <code>../../etc/passwd</code> can't get through as one piece.</li>
+    <li>The regex still allows a bare <code>.</code> or <code>..</code> — dots are in the allowed-character list for version strings like <code>v1.2.3</code>, and nobody separately asked "what if the whole string is just dots?"</li>
+    <li>The name is handed to a path-join function: <code>new File(parent, name)</code>, <code>path.join()</code>. These don't care whether <code>name</code> is <code>"foo"</code> or <code>".."</code> — joining a parent to <code>".."</code> means "go up one directory", exactly like <code>cd ..</code>.</li>
+    <li>Nobody re-checks the final path. No "is this still inside the folder I meant?" step after the join.</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>regex</b><span>CDAP's artifact and version patterns: <code>[\.a-zA-Z0-9_-]+</code>. The string <code>".."</code> is only dots, and dots are allowed, so it fully matches.</span></div>
+    <div role="listitem"><b>sink</b><span><code>ArtifactStore.copyFile()</code>: <code>.append("artifacts").append(name).append(version)</code>, then writes the uploaded jar there. No canonicalize-then-contain check anywhere after the join.</span></div>
+    <div role="listitem"><b>library</b><span>Checked the join function itself, not just CDAP's code: Apache Twill's <code>Location.append(child)</code> is literally <code>new File(file, child)</code>. No sanitizing, confirmed from its own source.</span></div>
+    <div role="listitem"><b>proof</b><span>Wrote a tiny Java program using that exact join call, fed it CDAP's real regex, and watched it on a real disk: artifact name <code>".."</code>, version <code>".."</code>, file landed one directory above where it should have, next to every other tenant's data.</span></div>
+  </div>
+  <p class="trap"><strong>Trap:</strong> reading the join and the regex and concluding "this must be exploitable" without running it. A path-join bug is really three separate facts (the regex allows it, the join doesn't sanitize, and the result lands where you predicted) and each one can be wrong on its own.</p>
+  <div class="check" data-correct="2">
+    <h3>Predict</h3>
+    <p>You find a regex <code>[a-zA-Z0-9._-]+</code> validating a filename, then see it joined into a path with no further check. What's the single most useful next step?</p>
+    <div class="opts">
+      <button type="button" id="q1a">File the report now — the regex clearly allows traversal.</button>
+      <button type="button" id="q1b">Read a few more call sites to feel more confident.</button>
+      <button type="button" id="q1c">Write a program that calls the exact join primitive the real code uses, feed it the exact regex, and watch where a real file lands.</button>
+      <button type="button" id="q1d">Assume the framework's join function must sanitize this already.</button>
+    </div>
+    <p class="why" hidden>Reading tells you what should happen. Only running the real mechanism — the actual join function, the actual regex, on a real filesystem — tells you what does happen. That's the difference between a hypothesis and a finding.</p>
+  </div>
+  <div class="task">
+    <h3>Produce</h3>
+    <p>Grep a codebase you know for a regex like <code>[\w.-]+</code> or <code>[a-zA-Z0-9._-]+</code> validating an id, name, or version. For each hit, write down: where does the validated value get used next? Does it reach a path-join, a file open, a directory create? If yes, is there a containment check after the join, or does the code just trust the regex?</p>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="l25">
+  <span class="tag">L25 · Filing · 8 min</span>
+  <h2 id="l25">The form is not the rules</h2>
+  <p class="hook">A bounty program's web form has a dropdown of categories. The actual rules live on a different page, and they change.</p>
+  <ol class="rules">
+    <li>An automated "out of scope" message from a form is a form's opinion, not a verdict on the bug.</li>
+    <li>Before accepting it, go read the program's own written rules page — not the dropdown's one-line description.</li>
+    <li>Rules change on a schedule the form doesn't always reflect. A category can close to a bug class on a specific date and the form can keep offering it anyway.</li>
+    <li>When a written rule tells you to use a different program, try that one before assuming the bug is simply unwelcome.</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>try 1</b><span>Submitted a path-traversal finding under the open-source program. Form: "out of scope".</span></div>
+    <div role="listitem"><b>rule</b><span>That program's own rules page, read in full: as of 1 Oct 2026 it stopped accepting this exact category — "product vulnerabilities" — and named path traversal as its own example of what it no longer takes.</span></div>
+    <div role="listitem"><b>try 2</b><span>Same rules page named a second program for cloud-related repos. Tried it. Form: "out of scope" again — its matcher wants a live cloud service address, not a bare source-repo link.</span></div>
+    <div role="listitem"><b>try 3</b><span>The rules index's own stated catch-all ("if you're not sure where to report, use this one") passed, with the warning visible on the submission for a human to re-route.</span></div>
+  </div>
+  <p class="trap"><strong>Trap:</strong> treating the first "out of scope" as the final word and dropping a real bug.</p>
+  <div class="check" data-correct="0">
+    <h3>Predict</h3>
+    <p>A bug-bounty form rejects your real, verified finding as "out of scope" for the category you picked. What's the right next move?</p>
+    <div class="opts">
+      <button type="button" id="q2a">Go read that program's actual written rules page before picking a different category.</button>
+      <button type="button" id="q2b">Assume the bug doesn't qualify anywhere and drop it.</button>
+      <button type="button" id="q2c">Keep clicking every category until one accepts it, without reading anything.</button>
+      <button type="button" id="q2d">Report it publicly instead, since the program won't take it.</button>
+    </div>
+    <p class="why" hidden>The form's category list can be stale or just wrong about matching your exact submission shape. The written rules page is the actual source of truth, and it often tells you directly which program to use instead.</p>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="l26">
+  <span class="tag">L26 · Method · 12 min</span>
+  <h2 id="l26">Differential port audit: steal from your own proof</h2>
+  <p class="hook">The most expensive part of finding a bug is building confidence a hypothesis is worth testing. A defense you've already proven real, in one codebase, gives you that hypothesis for free in every sibling of that codebase.</p>
+  <ol class="rules">
+    <li>Multi-language projects usually have one reference implementation that gets fixed first, and sibling ports in other languages that catch up later, if ever.</li>
+    <li>If you've already execution-verified a specific defense in the reference implementation, that defense is now a checklist item, not a guess, for every sibling port.</li>
+    <li>Check for the SAME defense by name and mechanism — not "does this port seem secure" in general, which is too vague to act on.</li>
+    <li>A port that already has the defense is a real result too. It proves the method finds real gaps instead of just flagging everything.</li>
+  </ol>
+  <div class="log" role="list" aria-label="Evidence">
+    <div role="listitem"><b>ref.</b><span>Python's dev server: binds loopback by default, AND checks the real connection's peer address on every request, rejecting anything non-local even if someone widens the bind. Confirmed by reading the actual check.</span></div>
+    <div role="listitem"><b>port A</b><span>Kotlin's port: same safe default, but grepped its whole server module for a peer or origin check — none. Only logging and content-type plugins installed. Documented as the operator's own risk to manage, but the second layer Python has was never built.</span></div>
+    <div role="listitem"><b>port B</b><span>Java's port: built and ran the actual server. <code>netstat</code> showed it listening on every network interface by default, no flag needed. A live request with a fake <code>Origin</code> header got back "allow any origin". The server's own startup log named two of these as known-insecure defaults, in a log nobody reads at 2am.</span></div>
+    <div role="listitem"><b>port C</b><span>Go's port: checked the same two things. Defaults to loopback with a clearly written reason in its own help text, and its allow-list of origins is empty until someone explicitly adds to it, with a direct warning against using a wildcard. Clean. The method correctly found nothing here.</span></div>
+  </div>
+  <p class="trap"><strong>Trap:</strong> finding a gap in one port and assuming every sibling has the same gap. Port C had the best defenses of all four, better documented than two of the others.</p>
+  <div class="check" data-correct="1">
+    <h3>Predict</h3>
+    <p>You've proven a specific defense is real in project X's Python implementation. Project X also ships Go, Java and Kotlin ports. What do you check first in each?</p>
+    <div class="opts">
+      <button type="button" id="q3a">Whether each port "feels" well written overall.</button>
+      <button type="button" id="q3b">Whether that exact, named defense exists in each port — by the same mechanism, not just a similar-sounding one.</button>
+      <button type="button" id="q3c">Only the port with the most GitHub stars, since it's most likely to matter.</button>
+      <button type="button" id="q3d">Nothing — if one port is safe, assume the others copied it.</button>
+    </div>
+    <p class="why" hidden>A vague "feels secure" check doesn't transfer your proof from the reference implementation. Checking for the specific, named mechanism does — and ports frequently do NOT copy each other, which is exactly why this method finds real gaps.</p>
+  </div>
+  <div class="task">
+    <h3>Produce</h3>
+    <p>Pick any project you know that ships more than one language implementation of the same server or tool. Name one specific, checkable defense you can verify exists (or doesn't) in each port — not "is it secure", but a named mechanism: a default bind address, an origin check, a permission gate. Write what you'd grep for in each language.</p>
+  </div>
+</section>
+
+<section class="lesson" aria-labelledby="recall">
+  <span class="tag">Recall · tap a card to reveal</span>
+  <h2 id="recall">Six cards</h2>
+  <div class="cards">
+    <button type="button" class="card" id="c1"><span class="q">A regex blocks <code>/</code> but allows dots. What string still gets through that shouldn't?</span><span class="a" hidden>A value that is nothing but dots — <code>"."</code> or <code>".."</code> — since every character in it is individually allowed, even though the whole string is a traversal token.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c2"><span class="q">Why does <code>new File(parent, "..")</code> matter even with no slash in sight?</span><span class="a" hidden>A path-join function treats <code>".."</code> as "go up one directory" the same way a shell does, regardless of whether it arrived with other slashes around it.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c3"><span class="q">You've read a path-traversal bug and it looks real. What turns that into a finding?</span><span class="a" hidden>Running the exact join mechanism the real code uses, with the exact validated value, and watching where a real file actually lands — not just reasoning about it.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c4"><span class="q">A bounty form says your bug is "out of scope". What do you check before giving up?</span><span class="a" hidden>The program's own written rules page, in full — not just the form's one-line category description, since rules change and the form can lag behind them.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c5"><span class="q">What makes a differential port audit cheaper than hunting a new codebase cold?</span><span class="a" hidden>The hypothesis is already proven real in the reference implementation. You're checking for one named, specific mechanism in each sibling, not searching blind.</span><span class="hint">tap to reveal</span></button>
+    <button type="button" class="card" id="c6"><span class="q">Why does a clean result on one port matter, not just the gaps on the others?</span><span class="a" hidden>It proves the method discriminates — it isn't just pattern-matching every port as vulnerable. A method that always finds something isn't trustworthy; one that sometimes finds nothing is.</span><span class="hint">tap to reveal</span></button>
+  </div>
+</section>
+
+<footer>Compressed from senior-lab lessons L24–L26, built from the 17 Oct 2026 CDAP path-traversal finding (filed, Google Bug Hunters) and the ADK sibling-port audit (adk-kotlin issue filed, adk-java draft, adk-go clean). Every number here was measured, not estimated.</footer>
+</div>
+
+<script>
+(function () {
+  var checks = document.querySelectorAll('.check');
+  Array.prototype.forEach.call(checks, function (box) {
+    var right = Number(box.getAttribute('data-correct'));
+    var btns = box.querySelectorAll('.opts button');
+    var why = box.querySelector('.why');
+    Array.prototype.forEach.call(btns, function (b, i) {
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(btns, function (x) { x.classList.remove('right', 'wrong'); });
+        b.classList.add(i === right ? 'right' : 'wrong');
+        if (i !== right) { btns[right].classList.add('right'); }
+        why.hidden = false;
+      });
+    });
+  });
+  var cards = document.querySelectorAll('.card');
+  Array.prototype.forEach.call(cards, function (c) {
+    c.addEventListener('click', function () {
+      var a = c.querySelector('.a'), h = c.querySelector('.hint');
+      a.hidden = !a.hidden;
+      h.textContent = a.hidden ? 'tap to reveal' : 'tap to hide';
+    });
+  });
+})();
+</script>
+</body>
+</html>
