@@ -28,6 +28,17 @@ button[disabled]{opacity:.85}
 .small{font-size:13px;color:#8fa1b3}
 select{font:inherit;background:#243242;color:#e6e6e6;border:1px solid #33475c;border-radius:8px;padding:6px}
 a,.lnk{color:#6aa9ff}
+.tabs{display:flex;gap:8px;margin:8px 0}
+.tabs button{margin:0;text-align:center;padding:9px;font-weight:600}
+.tabs button.on{background:#2f6fed;border-color:#2f6fed}
+textarea{width:100%;min-height:210px;font:14px/1.4 Menlo,Consolas,monospace;background:#0b0f14;color:#d8e6f5;border:1px solid #33475c;border-radius:8px;padding:10px;white-space:pre;overflow:auto;-webkit-appearance:none;resize:vertical}
+.sym{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.sym button{width:auto;margin:0;padding:8px 11px;text-align:center;font:15px Menlo,Consolas,monospace}
+.row{display:flex;gap:8px}.row button{text-align:center}
+pre.sol{white-space:pre-wrap;background:#0b0f14;border-radius:8px;padding:10px;font:13px/1.4 Menlo,Consolas,monospace;overflow:auto}
+.res{font:13px/1.45 Menlo,Consolas,monospace;margin:4px 0;word-break:break-word}
+.res.p{color:#4cc38a}.res.f{color:#ff8c9a}
+button.lock{opacity:.45}
 </style></head><body><div id="app"></div>
 <script>
 /* ML Ladder question bank: 12 levels x 8 questions. First option in "o" is the CORRECT one; the page shuffles them.
@@ -166,6 +177,364 @@ a,.lnk{color:#6aa9ff}
 
 </script>
 <script>
+/* ML Ladder code exercises: same 12 levels as the quiz. The learner types a JavaScript function; hidden + visible tests grade it.
+   t.a = JS source of the argument array, t.e = JS source of the expected value (or t.c = JS source of a check on result r).
+   Every solution here is executed against its own tests in test_ladder.js, and every starter must FAIL. ES5 only. */
+(function (root) {
+  'use strict';
+
+  function runTests(code, name, tests) {
+    var fn;
+    function fmt(v) {
+      if (v === undefined) return 'undefined';
+      if (typeof v === 'number' && v !== v) return 'NaN';
+      try { var s = JSON.stringify(v); return s === undefined ? String(v) : (s.length > 120 ? s.slice(0, 117) + '...' : s); } catch (e) { return String(v); }
+    }
+    function eq(a, b) {
+      var i, k;
+      if (typeof a === 'number' && typeof b === 'number') {
+        if (a === b || (a !== a && b !== b)) return true;
+        return Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(b));
+      }
+      if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false;
+        for (i = 0; i < a.length; i++) if (!eq(a[i], b[i])) return false;
+        return true;
+      }
+      if (a && b && typeof a === 'object' && typeof b === 'object' && !Array.isArray(a) && !Array.isArray(b)) {
+        var ka = Object.keys(a).sort(), kb = Object.keys(b).sort();
+        if (ka.join('|') !== kb.join('|')) return false;
+        for (k = 0; k < ka.length; k++) if (!eq(a[ka[k]], b[ka[k]])) return false;
+        return true;
+      }
+      return a === b;
+    }
+    try {
+      fn = (new Function(code + '\n;return (typeof ' + name + "==='function')?" + name + ':undefined;'))();
+    } catch (e) {
+      return { ok: false, err: 'Your code has an error: ' + e.message, results: [] };
+    }
+    if (!fn) return { ok: false, err: 'I could not find a function named ' + name + '. Keep that exact name.', results: [] };
+    var results = [], allPass = true;
+    for (var i = 0; i < tests.length; i++) {
+      var t = tests[i], r = { hidden: !!t.h, pass: false };
+      try {
+        var args = (new Function('return (' + t.a + ')'))();
+        r.a = t.a;
+        var got = fn.apply(null, args);
+        r.got = fmt(got);
+        if (t.c) {
+          r.e = 'a result that passes: ' + t.c;
+          r.pass = !!(new Function('r', 'return (' + t.c + ')'))(got);
+        } else {
+          var exp = (new Function('return (' + t.e + ')'))();
+          r.e = fmt(exp);
+          r.pass = eq(got, exp);
+        }
+      } catch (e2) {
+        r.err = e2.message;
+      }
+      if (!r.pass) allPass = false;
+      results.push(r);
+    }
+    return { ok: allPass, err: null, results: results };
+  }
+
+  function L(a) { return a.join('\n'); }
+  var EX = [
+    /* ---------------- Level 1: What ML is ---------------- */
+    { id: 'double', l: 1, name: 'double', title: 'Your first function',
+      desc: 'A model is just a function: something goes in, an answer comes out. Write double(x) that returns x times 2.',
+      starter: L(['function double(x) {', '  // return x times 2', '}']),
+      hint: 'Use the word return, then the math: return x * 2;',
+      sol: L(['function double(x) {', '  return x * 2;', '}']),
+      tests: [{ a: '[3]', e: '6' }, { a: '[0]', e: '0' }, { a: '[-4]', e: '-8' }, { a: '[2.5]', e: '5', h: 1 }] },
+    { id: 'rule', l: 1, name: 'ruleClassifier', title: 'A hand-written rule',
+      desc: 'Before ML, people wrote rules by hand. Write ruleClassifier(size) that returns the text "big" when size is 50 or more, otherwise "small".',
+      starter: L(['function ruleClassifier(size) {', '  // "big" if size >= 50, else "small"', '}']),
+      hint: 'if (size >= 50) { return "big"; } then return "small" after it.',
+      sol: L(['function ruleClassifier(size) {', '  if (size >= 50) { return "big"; }', '  return "small";', '}']),
+      tests: [{ a: '[80]', e: '"big"' }, { a: '[10]', e: '"small"' }, { a: '[50]', e: '"big"' }, { a: '[49.9]', e: '"small"', h: 1 }] },
+    { id: 'acc', l: 1, name: 'accuracy', title: 'Score a model',
+      desc: 'Write accuracy(preds, labels): the fraction of predictions that equal the true labels. Example: preds [1,0,1], labels [1,1,1] gives 2/3.',
+      starter: L(['function accuracy(preds, labels) {', '  // count matches, divide by how many there are', '}']),
+      hint: 'Loop with for (var i = 0; i < preds.length; i++), add 1 to a counter when preds[i] === labels[i], return counter / preds.length.',
+      sol: L(['function accuracy(preds, labels) {', '  var right = 0;', '  for (var i = 0; i < preds.length; i++) {', '    if (preds[i] === labels[i]) { right++; }', '  }', '  return right / preds.length;', '}']),
+      tests: [{ a: '[[1,0,1],[1,1,1]]', e: '2/3' }, { a: '[[1],[1]]', e: '1' }, { a: '[[0,0],[1,1]]', e: '0' }, { a: '[[1,2,3,4],[1,2,0,0]]', e: '0.5', h: 1 }] },
+
+    /* ---------------- Level 2: Data basics ---------------- */
+    { id: 'mean', l: 2, name: 'mean', title: 'The average',
+      desc: 'Write mean(xs): the average of a list of numbers. An empty list should give 0.',
+      starter: L(['function mean(xs) {', '  ', '}']),
+      hint: 'Add everything up in a loop, then divide by xs.length. Check for an empty list first.',
+      sol: L(['function mean(xs) {', '  if (xs.length === 0) { return 0; }', '  var s = 0;', '  for (var i = 0; i < xs.length; i++) { s += xs[i]; }', '  return s / xs.length;', '}']),
+      tests: [{ a: '[[1,2,3]]', e: '2' }, { a: '[[10]]', e: '10' }, { a: '[[-1,1]]', e: '0' }, { a: '[[]]', e: '0', h: 1 }] },
+    { id: 'scale', l: 2, name: 'minMaxScale', title: 'Scale to 0 - 1',
+      desc: 'Write minMaxScale(xs) that rescales numbers so the smallest becomes 0 and the largest becomes 1: (x - min) / (max - min). If all numbers are equal, return all zeros.',
+      starter: L(['function minMaxScale(xs) {', '  ', '}']),
+      hint: 'Find min and max with Math.min.apply(null, xs) and Math.max.apply(null, xs). Handle max === min first, then use xs.map(...).',
+      sol: L(['function minMaxScale(xs) {', '  var lo = Math.min.apply(null, xs);', '  var hi = Math.max.apply(null, xs);', '  return xs.map(function (x) { return hi === lo ? 0 : (x - lo) / (hi - lo); });', '}']),
+      tests: [{ a: '[[0,5,10]]', e: '[0,0.5,1]' }, { a: '[[10,20]]', e: '[0,1]' }, { a: '[[3,3,3]]', e: '[0,0,0]', h: 1 }, { a: '[[-1,0,1]]', e: '[0,0.5,1]', h: 1 }] },
+    { id: 'fill', l: 2, name: 'fillMissing', title: 'Fill the blanks',
+      desc: 'Real data has holes. Write fillMissing(xs) where missing values are null: replace each null with the average of the numbers that are present.',
+      starter: L(['function fillMissing(xs) {', '  ', '}']),
+      hint: 'First compute the mean of only the non-null values, then return xs.map(...) swapping nulls for that mean.',
+      sol: L(['function fillMissing(xs) {', '  var s = 0, n = 0;', '  for (var i = 0; i < xs.length; i++) { if (xs[i] !== null) { s += xs[i]; n++; } }', '  var m = n === 0 ? 0 : s / n;', '  return xs.map(function (x) { return x === null ? m : x; });', '}']),
+      tests: [{ a: '[[1,null,3]]', e: '[1,2,3]' }, { a: '[[null,4,6]]', e: '[5,4,6]' }, { a: '[[2,2]]', e: '[2,2]', h: 1 }] },
+    { id: 'split', l: 2, name: 'trainTestSplit', title: 'Train / test split',
+      desc: 'Write trainTestSplit(xs, frac): the first Math.floor(xs.length * frac) items are training data, the rest are test data. Return [train, test]. (A real split shuffles first; keep it simple here.)',
+      starter: L(['function trainTestSplit(xs, frac) {', '  ', '}']),
+      hint: 'var n = Math.floor(xs.length * frac); then use xs.slice(0, n) and xs.slice(n).',
+      sol: L(['function trainTestSplit(xs, frac) {', '  var n = Math.floor(xs.length * frac);', '  return [xs.slice(0, n), xs.slice(n)];', '}']),
+      tests: [{ a: '[[1,2,3,4,5,6,7,8,9,10],0.8]', e: '[[1,2,3,4,5,6,7,8],[9,10]]' }, { a: '[[1,2,3,4,5],0.5]', e: '[[1,2],[3,4,5]]' }, { a: '[[1,2],1]', e: '[[1,2],[]]', h: 1 }] },
+
+    /* ---------------- Level 3: First models ---------------- */
+    { id: 'line', l: 3, name: 'predictLine', title: 'Predict with a line',
+      desc: 'A linear model predicts w * x + b. Write predictLine(w, b, x).',
+      starter: L(['function predictLine(w, b, x) {', '  ', '}']),
+      hint: 'return w * x + b;',
+      sol: L(['function predictLine(w, b, x) {', '  return w * x + b;', '}']),
+      tests: [{ a: '[2,1,3]', e: '7' }, { a: '[0,5,100]', e: '5' }, { a: '[-1,0,4]', e: '-4', h: 1 }] },
+    { id: 'fit', l: 3, name: 'fitLine', title: 'Fit a line',
+      desc: 'Write fitLine(xs, ys) that finds the best straight line. Slope w = sum((x-mx)*(y-my)) / sum((x-mx)^2), and intercept b = my - w*mx, where mx and my are the averages. Return [w, b].',
+      starter: L(['function fitLine(xs, ys) {', '  ', '}']),
+      hint: 'Compute mx and my first. Then loop once, adding (x-mx)*(y-my) to a top total and (x-mx)*(x-mx) to a bottom total. w = top / bottom.',
+      sol: L(['function fitLine(xs, ys) {', '  var n = xs.length, mx = 0, my = 0, i;', '  for (i = 0; i < n; i++) { mx += xs[i]; my += ys[i]; }', '  mx /= n; my /= n;', '  var top = 0, bottom = 0;', '  for (i = 0; i < n; i++) {', '    top += (xs[i] - mx) * (ys[i] - my);', '    bottom += (xs[i] - mx) * (xs[i] - mx);', '  }', '  var w = top / bottom;', '  return [w, my - w * mx];', '}']),
+      tests: [{ a: '[[1,2,3],[3,5,7]]', e: '[2,1]' }, { a: '[[0,1,2,3],[1,1,1,1]]', e: '[0,1]' }, { a: '[[1,2,3,4],[2,4,5,4]]', e: '[0.7,2]', h: 1 }] },
+    { id: 'knn', l: 3, name: 'knnPredict', title: 'Nearest neighbors',
+      desc: 'Write knnPredict(trainX, trainY, x, k) for single-number inputs. Find the k training points closest to x (by absolute difference) and return the label (0 or 1) most of them have. If two points are equally close, the earlier one in the list wins.',
+      starter: L(['function knnPredict(trainX, trainY, x, k) {', '  ', '}']),
+      hint: 'Build a list of indexes, sort it by Math.abs(trainX[i] - x) (ties: smaller index first), take the first k, then count how many of their labels are 1.',
+      sol: L(['function knnPredict(trainX, trainY, x, k) {', '  var idx = [];', '  for (var i = 0; i < trainX.length; i++) { idx.push(i); }', '  idx.sort(function (a, b) {', '    var d = Math.abs(trainX[a] - x) - Math.abs(trainX[b] - x);', '    return d !== 0 ? d : a - b;', '  });', '  var ones = 0;', '  for (var j = 0; j < k; j++) { ones += trainY[idx[j]]; }', '  return ones * 2 > k ? 1 : 0;', '}']),
+      tests: [{ a: '[[1,2,3,10,11,12],[0,0,0,1,1,1],2.5,3]', e: '0' }, { a: '[[1,2,3,10,11,12],[0,0,0,1,1,1],10.5,3]', e: '1' }, { a: '[[1,2,3,10,11,12],[0,0,0,1,1,1],6.4,3]', e: '0', h: 1 }, { a: '[[1,2,3,10,11,12],[0,0,0,1,1,1],11,1]', e: '1', h: 1 }] },
+
+    /* ---------------- Level 4: How training works ---------------- */
+    { id: 'mse', l: 4, name: 'mse', title: 'Mean squared error',
+      desc: 'The loss measures how wrong we are. Write mse(preds, targets): the average of (pred - target) squared.',
+      starter: L(['function mse(preds, targets) {', '  ', '}']),
+      hint: 'Loop, add (preds[i] - targets[i]) * (preds[i] - targets[i]) to a total, divide by the count.',
+      sol: L(['function mse(preds, targets) {', '  var s = 0;', '  for (var i = 0; i < preds.length; i++) {', '    var d = preds[i] - targets[i];', '    s += d * d;', '  }', '  return s / preds.length;', '}']),
+      tests: [{ a: '[[1,2,3],[1,2,5]]', e: '4/3' }, { a: '[[2],[2]]', e: '0' }, { a: '[[0,0],[3,4]]', e: '12.5', h: 1 }] },
+    { id: 'step', l: 4, name: 'gdStep', title: 'One downhill step',
+      desc: 'Gradient descent moves a weight against its gradient. Write gdStep(w, grad, lr) that returns the new weight: w - lr * grad.',
+      starter: L(['function gdStep(w, grad, lr) {', '  ', '}']),
+      hint: 'return w - lr * grad;',
+      sol: L(['function gdStep(w, grad, lr) {', '  return w - lr * grad;', '}']),
+      tests: [{ a: '[1,2,0.1]', e: '0.8' }, { a: '[0,-3,0.5]', e: '1.5' }, { a: '[5,0,0.9]', e: '5', h: 1 }] },
+    { id: 'gd', l: 4, name: 'gradientDescent', title: 'Run gradient descent',
+      desc: 'Minimize the loss (w - 3)^2. Its gradient is 2 * (w - 3). Start with w = 0, then repeat "steps" times: w = w - lr * gradient. Write gradientDescent(lr, steps) that returns the final w. It should creep toward 3.',
+      starter: L(['function gradientDescent(lr, steps) {', '  var w = 0;', '  ', '  return w;', '}']),
+      hint: 'for (var i = 0; i < steps; i++) { w = w - lr * 2 * (w - 3); }',
+      sol: L(['function gradientDescent(lr, steps) {', '  var w = 0;', '  for (var i = 0; i < steps; i++) {', '    w = w - lr * 2 * (w - 3);', '  }', '  return w;', '}']),
+      tests: [{ a: '[0.1,0]', e: '0' }, { a: '[0.5,1]', e: '3' }, { a: '[0.1,1]', e: '0.6' }, { a: '[0.1,100]', e: '3', h: 1 }] },
+
+    /* ---------------- Level 5: Neural networks ---------------- */
+    { id: 'relu', l: 5, name: 'relu', title: 'ReLU',
+      desc: 'Write relu(x): return x if x is positive, otherwise 0.',
+      starter: L(['function relu(x) {', '  ', '}']),
+      hint: 'return Math.max(0, x); or use an if.',
+      sol: L(['function relu(x) {', '  return Math.max(0, x);', '}']),
+      tests: [{ a: '[3]', e: '3' }, { a: '[-2]', e: '0' }, { a: '[0]', e: '0', h: 1 }] },
+    { id: 'neuron', l: 5, name: 'neuron', title: 'One neuron',
+      desc: 'Write neuron(inputs, weights, bias): multiply each input by its weight, add them up, add the bias, then pass the total through ReLU (negative becomes 0).',
+      starter: L(['function neuron(inputs, weights, bias) {', '  ', '}']),
+      hint: 'total = bias; loop adding inputs[i] * weights[i]; return Math.max(0, total).',
+      sol: L(['function neuron(inputs, weights, bias) {', '  var t = bias;', '  for (var i = 0; i < inputs.length; i++) { t += inputs[i] * weights[i]; }', '  return Math.max(0, t);', '}']),
+      tests: [{ a: '[[1,2],[3,4],1]', e: '12' }, { a: '[[1,1],[-1,-1],0.5]', e: '0' }, { a: '[[2],[0.5],0]', e: '1', h: 1 }] },
+    { id: 'softmax', l: 5, name: 'softmax', title: 'Softmax',
+      desc: 'Write softmax(xs): turn scores into probabilities that add up to 1. Compute exp(x) for each, divide by the total. Careful: exp(1000) overflows, so first subtract the biggest score from every score (the answer does not change).',
+      starter: L(['function softmax(xs) {', '  ', '}']),
+      hint: 'var m = Math.max.apply(null, xs); exps = xs.map(x => Math.exp(x - m)); divide each by the sum of exps. (Write it with function (x) { ... } if arrow functions confuse you.)',
+      sol: L(['function softmax(xs) {', '  var m = Math.max.apply(null, xs);', '  var e = xs.map(function (x) { return Math.exp(x - m); });', '  var s = 0;', '  for (var i = 0; i < e.length; i++) { s += e[i]; }', '  return e.map(function (v) { return v / s; });', '}']),
+      tests: [{ a: '[[0,0]]', e: '[0.5,0.5]' }, { a: '[[1,2,3]]', e: '[0.09003057317038046,0.24472847105479764,0.6652409557748219]' }, { a: '[[1000,1000]]', e: '[0.5,0.5]', h: 1 }] },
+    { id: 'tiny', l: 5, name: 'tinyNet', title: 'A two-layer network',
+      desc: 'Write tinyNet(x, w1, b1, w2, b2) for one number x. Hidden layer: for each i, h[i] = ReLU(w1[i] * x + b1[i]). Output: sum of w2[i] * h[i], plus b2. Return the output number.',
+      starter: L(['function tinyNet(x, w1, b1, w2, b2) {', '  ', '}']),
+      hint: 'Loop over i. Compute h = Math.max(0, w1[i]*x + b1[i]), and add w2[i]*h to a running total that starts at b2.',
+      sol: L(['function tinyNet(x, w1, b1, w2, b2) {', '  var out = b2;', '  for (var i = 0; i < w1.length; i++) {', '    var h = Math.max(0, w1[i] * x + b1[i]);', '    out += w2[i] * h;', '  }', '  return out;', '}']),
+      tests: [{ a: '[2,[1,-1],[0,0],[3,5],1]', e: '7' }, { a: '[-1,[1,-1],[0,0],[3,5],1]', e: '6' }, { a: '[0,[1],[0],[9],2]', e: '2', h: 1 }] },
+
+    /* ---------------- Level 6: Judging a model ---------------- */
+    { id: 'prec', l: 6, name: 'precision', title: 'Precision',
+      desc: 'Write precision(preds, labels) for 0/1 values: of everything predicted 1, what fraction really was 1? (true positives / predicted positives). If nothing was predicted 1, return 0.',
+      starter: L(['function precision(preds, labels) {', '  ', '}']),
+      hint: 'Count tp (pred 1 and label 1) and predicted (pred 1). Return predicted === 0 ? 0 : tp / predicted.',
+      sol: L(['function precision(preds, labels) {', '  var tp = 0, flagged = 0;', '  for (var i = 0; i < preds.length; i++) {', '    if (preds[i] === 1) { flagged++; if (labels[i] === 1) { tp++; } }', '  }', '  return flagged === 0 ? 0 : tp / flagged;', '}']),
+      tests: [{ a: '[[1,1,0,0],[1,0,1,0]]', e: '0.5' }, { a: '[[1,1,1,0],[1,1,0,0]]', e: '2/3' }, { a: '[[0,0],[1,1]]', e: '0', h: 1 }] },
+    { id: 'rec', l: 6, name: 'recall', title: 'Recall',
+      desc: 'Write recall(preds, labels): of everything that really was 1, what fraction did we find? (true positives / actual positives). If there are no actual positives, return 0.',
+      starter: L(['function recall(preds, labels) {', '  ', '}']),
+      hint: 'Count tp and actual (label 1). Return actual === 0 ? 0 : tp / actual.',
+      sol: L(['function recall(preds, labels) {', '  var tp = 0, actual = 0;', '  for (var i = 0; i < preds.length; i++) {', '    if (labels[i] === 1) { actual++; if (preds[i] === 1) { tp++; } }', '  }', '  return actual === 0 ? 0 : tp / actual;', '}']),
+      tests: [{ a: '[[1,1,0,0],[1,0,1,0]]', e: '0.5' }, { a: '[[1,1,1,0],[1,1,0,0]]', e: '1' }, { a: '[[1,1],[0,0]]', e: '0', h: 1 }] },
+    { id: 'f1', l: 6, name: 'f1', title: 'F1 score',
+      desc: 'Write f1(preds, labels): 2 * precision * recall / (precision + recall). If both are 0, return 0. (Write your own precision and recall inside, or copy ideas from the last two exercises.)',
+      starter: L(['function f1(preds, labels) {', '  ', '}']),
+      hint: 'Count tp, flagged (pred 1), actual (label 1). p = tp/flagged, r = tp/actual (use 0 when dividing by 0). Then the formula.',
+      sol: L(['function f1(preds, labels) {', '  var tp = 0, flagged = 0, actual = 0;', '  for (var i = 0; i < preds.length; i++) {', '    if (preds[i] === 1) { flagged++; }', '    if (labels[i] === 1) { actual++; }', '    if (preds[i] === 1 && labels[i] === 1) { tp++; }', '  }', '  var p = flagged === 0 ? 0 : tp / flagged;', '  var r = actual === 0 ? 0 : tp / actual;', '  return p + r === 0 ? 0 : 2 * p * r / (p + r);', '}']),
+      tests: [{ a: '[[1,1,0,0],[1,0,1,0]]', e: '0.5' }, { a: '[[1,1,1,0],[1,1,0,0]]', e: '0.8' }, { a: '[[0,0],[1,1]]', e: '0', h: 1 }] },
+
+    /* ---------------- Level 7: Deep learning practice ---------------- */
+    { id: 'l2', l: 7, name: 'l2Penalty', title: 'Weight decay penalty',
+      desc: 'Regularization punishes big weights. Write l2Penalty(weights, lambda): lambda times the sum of each weight squared.',
+      starter: L(['function l2Penalty(weights, lambda) {', '  ', '}']),
+      hint: 'Add w * w for each weight, then multiply the total by lambda.',
+      sol: L(['function l2Penalty(weights, lambda) {', '  var s = 0;', '  for (var i = 0; i < weights.length; i++) { s += weights[i] * weights[i]; }', '  return lambda * s;', '}']),
+      tests: [{ a: '[[1,2,3],0.1]', e: '1.4' }, { a: '[[0,0],5]', e: '0' }, { a: '[[-2],0.5]', e: '2', h: 1 }] },
+    { id: 'batches', l: 7, name: 'batches', title: 'Split into batches',
+      desc: 'Write batches(xs, size): split a list into chunks of "size" items. The last chunk may be smaller. Example: batches([1,2,3,4,5], 2) gives [[1,2],[3,4],[5]].',
+      starter: L(['function batches(xs, size) {', '  ', '}']),
+      hint: 'Loop i = 0; i < xs.length; i += size and push xs.slice(i, i + size).',
+      sol: L(['function batches(xs, size) {', '  var out = [];', '  for (var i = 0; i < xs.length; i += size) { out.push(xs.slice(i, i + size)); }', '  return out;', '}']),
+      tests: [{ a: '[[1,2,3,4,5],2]', e: '[[1,2],[3,4],[5]]' }, { a: '[[1,2,3,4],2]', e: '[[1,2],[3,4]]' }, { a: '[[],3]', e: '[]', h: 1 }] },
+    { id: 'drop', l: 7, name: 'applyDropout', title: 'Dropout',
+      desc: 'Write applyDropout(xs, mask, p). mask[i] is 1 to keep item i and 0 to drop it. Dropped items become 0. Kept items are multiplied by 1 / (1 - p), so the average stays the same. (This is how real "inverted dropout" works.)',
+      starter: L(['function applyDropout(xs, mask, p) {', '  ', '}']),
+      hint: 'xs.map(function (x, i) { return mask[i] === 1 ? x / (1 - p) : 0; })',
+      sol: L(['function applyDropout(xs, mask, p) {', '  return xs.map(function (x, i) { return mask[i] === 1 ? x / (1 - p) : 0; });', '}']),
+      tests: [{ a: '[[2,4,6],[1,0,1],0.5]', e: '[4,0,12]' }, { a: '[[1,1],[0,0],0.3]', e: '[0,0]' }, { a: '[[3],[1],0]', e: '[3]', h: 1 }] },
+    { id: 'early', l: 7, name: 'earlyStop', title: 'Early stopping',
+      desc: 'validation losses arrive once per epoch. Write earlyStop(losses, patience). Track the epoch (index) with the lowest loss so far ("best"; only a strictly lower loss counts as better). Training stops at the first epoch i where i - best >= patience. Return [best, stop]. If it never stops, stop is the last index.',
+      starter: L(['function earlyStop(losses, patience) {', '  ', '}']),
+      hint: 'Keep best = 0. For i from 1: if losses[i] < losses[best], best = i. Then if i - best >= patience, return [best, i]. After the loop return [best, losses.length - 1].',
+      sol: L(['function earlyStop(losses, patience) {', '  var best = 0;', '  for (var i = 1; i < losses.length; i++) {', '    if (losses[i] < losses[best]) { best = i; }', '    if (i - best >= patience) { return [best, i]; }', '  }', '  return [best, losses.length - 1];', '}']),
+      tests: [{ a: '[[5,4,3,3.5,3.2,3.1,2.9],2]', e: '[2,4]' }, { a: '[[5,4,3,3.5,3.2,3.1,2.9],3]', e: '[2,5]' }, { a: '[[3,2,1],2]', e: '[2,2]', h: 1 }] },
+
+    /* ---------------- Level 8: Modern architectures ---------------- */
+    { id: 'dot', l: 8, name: 'dot', title: 'Dot product',
+      desc: 'Write dot(a, b): multiply matching items and add them up. Attention and neurons both rely on this.',
+      starter: L(['function dot(a, b) {', '  ', '}']),
+      hint: 'Loop, add a[i] * b[i].',
+      sol: L(['function dot(a, b) {', '  var s = 0;', '  for (var i = 0; i < a.length; i++) { s += a[i] * b[i]; }', '  return s;', '}']),
+      tests: [{ a: '[[1,2,3],[4,5,6]]', e: '32' }, { a: '[[1,0],[0,1]]', e: '0' }, { a: '[[],[]]', e: '0', h: 1 }] },
+    { id: 'conv', l: 8, name: 'convolve1d', title: 'A 1D convolution',
+      desc: 'A convolution slides a small kernel across a signal. Write convolve1d(signal, kernel): for each position where the kernel fits fully, multiply kernel and the signal values under it and add them. (No flipping; this is what CNN layers do.) Example: signal [1,2,3,4], kernel [1,0,-1] gives [-2,-2].',
+      starter: L(['function convolve1d(signal, kernel) {', '  ', '}']),
+      hint: 'Outer loop i from 0 to signal.length - kernel.length (inclusive). Inner loop j over the kernel, adding signal[i + j] * kernel[j].',
+      sol: L(['function convolve1d(signal, kernel) {', '  var out = [];', '  for (var i = 0; i + kernel.length <= signal.length; i++) {', '    var s = 0;', '    for (var j = 0; j < kernel.length; j++) { s += signal[i + j] * kernel[j]; }', '    out.push(s);', '  }', '  return out;', '}']),
+      tests: [{ a: '[[1,2,3,4],[1,0,-1]]', e: '[-2,-2]' }, { a: '[[1,2,3],[1,1]]', e: '[3,5]' }, { a: '[[5,5,5],[2]]', e: '[10,10,10]', h: 1 }] },
+    { id: 'attw', l: 8, name: 'attentionWeights', title: 'Attention weights',
+      desc: 'Write attentionWeights(query, keys). For each key, score = dot(query, key) / sqrt(d) where d is the length of query. Then softmax the scores (subtract the max first for safety). Return the list of weights; they add up to 1.',
+      starter: L(['function attentionWeights(query, keys) {', '  ', '}']),
+      hint: 'scores = keys.map(k => dot(query,k) / Math.sqrt(query.length)); then the same softmax steps as before.',
+      sol: L(['function attentionWeights(query, keys) {', '  var d = Math.sqrt(query.length);', '  var scores = keys.map(function (k) {', '    var s = 0;', '    for (var i = 0; i < query.length; i++) { s += query[i] * k[i]; }', '    return s / d;', '  });', '  var m = Math.max.apply(null, scores);', '  var e = scores.map(function (v) { return Math.exp(v - m); });', '  var t = 0;', '  for (var j = 0; j < e.length; j++) { t += e[j]; }', '  return e.map(function (v) { return v / t; });', '}']),
+      tests: [{ a: '[[1,0],[[1,0],[0,1]]]', e: '[0.6697615493266569,0.3302384506733431]' }, { a: '[[0,0],[[1,2],[3,4]]]', e: '[0.5,0.5]' }, { a: '[[1],[[2]]]', e: '[1]', h: 1 }] },
+    { id: 'attend', l: 8, name: 'attend', title: 'Mix the values',
+      desc: 'Write attend(weights, values). Each value is a list of numbers. Return the weighted sum: for every position j, add weights[i] * values[i][j] across i. Example: weights [0.5,0.5], values [[2,0],[0,2]] gives [1,1].',
+      starter: L(['function attend(weights, values) {', '  ', '}']),
+      hint: 'Make out = values[0].map(() => 0) (or a loop of zeros). Then for every i and j, out[j] += weights[i] * values[i][j].',
+      sol: L(['function attend(weights, values) {', '  var out = [];', '  for (var j = 0; j < values[0].length; j++) {', '    var s = 0;', '    for (var i = 0; i < weights.length; i++) { s += weights[i] * values[i][j]; }', '    out.push(s);', '  }', '  return out;', '}']),
+      tests: [{ a: '[[0.5,0.5],[[2,0],[0,2]]]', e: '[1,1]' }, { a: '[[1,0],[[7,8],[9,9]]]', e: '[7,8]' }, { a: '[[0.25,0.75],[[4],[8]]]', e: '[7]', h: 1 }] },
+
+    /* ---------------- Level 9: LLMs and tuning ---------------- */
+    { id: 'argmax', l: 9, name: 'argmax', title: 'Greedy pick',
+      desc: 'A language model scores every possible next token. The simplest choice is the highest one. Write argmax(xs): return the INDEX of the largest number (first one if tied).',
+      starter: L(['function argmax(xs) {', '  ', '}']),
+      hint: 'Keep best = 0, and update when xs[i] > xs[best].',
+      sol: L(['function argmax(xs) {', '  var best = 0;', '  for (var i = 1; i < xs.length; i++) { if (xs[i] > xs[best]) { best = i; } }', '  return best;', '}']),
+      tests: [{ a: '[[0.1,0.7,0.2]]', e: '1' }, { a: '[[5,1,1]]', e: '0' }, { a: '[[2,9,9]]', e: '1', h: 1 }] },
+    { id: 'temp', l: 9, name: 'applyTemperature', title: 'Temperature',
+      desc: 'Write applyTemperature(logits, t): divide every score by t, then softmax. Low t makes the model more certain; high t makes it more random.',
+      starter: L(['function applyTemperature(logits, t) {', '  ', '}']),
+      hint: 'Same as softmax, but use x / t before exp (subtract the max of the divided scores first).',
+      sol: L(['function applyTemperature(logits, t) {', '  var z = logits.map(function (x) { return x / t; });', '  var m = Math.max.apply(null, z);', '  var e = z.map(function (v) { return Math.exp(v - m); });', '  var s = 0;', '  for (var i = 0; i < e.length; i++) { s += e[i]; }', '  return e.map(function (v) { return v / s; });', '}']),
+      tests: [{ a: '[[0,0],1]', e: '[0.5,0.5]' }, { a: '[[1,2],1]', e: '[0.2689414213699951,0.7310585786300049]' }, { a: '[[1,2],0.5]', e: '[0.11920292202211755,0.8807970779778823]', h: 1 }] },
+    { id: 'topk', l: 9, name: 'topK', title: 'Top-k sampling pool',
+      desc: 'Write topK(probs, k): return the indexes of the k largest probabilities, biggest first. If two are equal, the lower index comes first.',
+      starter: L(['function topK(probs, k) {', '  ', '}']),
+      hint: 'Make a list of indexes, sort it by probs[b] - probs[a] (ties: a - b), then slice(0, k).',
+      sol: L(['function topK(probs, k) {', '  var idx = [];', '  for (var i = 0; i < probs.length; i++) { idx.push(i); }', '  idx.sort(function (a, b) { return probs[b] - probs[a] || a - b; });', '  return idx.slice(0, k);', '}']),
+      tests: [{ a: '[[0.1,0.5,0.2,0.2],2]', e: '[1,2]' }, { a: '[[0.3,0.3,0.4],3]', e: '[2,0,1]' }, { a: '[[1],1]', e: '[0]', h: 1 }] },
+    { id: 'quant', l: 9, name: 'quantize8', title: 'Quantize to 8 bits',
+      desc: 'Write quantize8(xs): find scale = (largest absolute value) / 127, then turn each number into Math.round(x / scale). Return [integers, scale]. If every number is 0, use scale 1.',
+      starter: L(['function quantize8(xs) {', '  ', '}']),
+      hint: 'var m = 0; loop with m = Math.max(m, Math.abs(x)). scale = m === 0 ? 1 : m / 127. Then map with Math.round(x / scale).',
+      sol: L(['function quantize8(xs) {', '  var m = 0;', '  for (var i = 0; i < xs.length; i++) { m = Math.max(m, Math.abs(xs[i])); }', '  var scale = m === 0 ? 1 : m / 127;', '  return [xs.map(function (x) { return Math.round(x / scale); }), scale];', '}']),
+      tests: [{ a: '[[127,-254,0]]', e: '[[64,-127,0],2]' }, { a: '[[0,0]]', e: '[[0,0],1]' }, { a: '[[1,0,-1]]', e: '[[127,0,-127],1/127]', h: 1 }] },
+
+    /* ---------------- Level 10: Numerics and systems ---------------- */
+    { id: 'lse', l: 10, name: 'logSumExp', title: 'Stable log-sum-exp',
+      desc: 'Write logSumExp(xs) = log(exp(x1) + exp(x2) + ...). The naive version overflows for big numbers (exp(1000) is Infinity). Trick: subtract the largest value m first, compute log(sum(exp(x - m))), then add m back.',
+      starter: L(['function logSumExp(xs) {', '  ', '}']),
+      hint: 'var m = Math.max.apply(null, xs); sum exp(x - m); return m + Math.log(sum).',
+      sol: L(['function logSumExp(xs) {', '  var m = Math.max.apply(null, xs);', '  var s = 0;', '  for (var i = 0; i < xs.length; i++) { s += Math.exp(xs[i] - m); }', '  return m + Math.log(s);', '}']),
+      tests: [{ a: '[[0,0]]', e: 'Math.log(2)' }, { a: '[[1000,1000]]', e: '1000 + Math.log(2)' }, { a: '[[-1000,-1000]]', e: '-1000 + Math.log(2)', h: 1 }] },
+    { id: 'kahan', l: 10, name: 'kahanSum', title: 'Add without losing digits',
+      desc: 'Adding many numbers in floating point loses tiny bits. Write kahanSum(xs) using compensated summation: keep a running correction c. For each x: y = x - c; t = sum + y; c = (t - sum) - y; sum = t. Return sum. (The tests demand EXACT answers a plain loop gets wrong.)',
+      starter: L(['function kahanSum(xs) {', '  var sum = 0;', '  var c = 0;', '  ', '  return sum;', '}']),
+      hint: 'for each x: var y = x - c; var t = sum + y; c = (t - sum) - y; sum = t;',
+      sol: L(['function kahanSum(xs) {', '  var sum = 0;', '  var c = 0;', '  for (var i = 0; i < xs.length; i++) {', '    var y = xs[i] - c;', '    var t = sum + y;', '    c = (t - sum) - y;', '    sum = t;', '  }', '  return sum;', '}']),
+      tests: [{ a: '[[1e16,1,1,-1e16]]', c: 'r === 2' }, { a: '[[1,2,3]]', c: 'r === 6' }, { a: '[[0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]]', c: 'r === 1', h: 1 }] },
+    { id: 'batchind', l: 10, name: 'isBatchIndependent', title: 'Is it batch independent?',
+      desc: 'A good model gives the same answer for an example no matter who else is in the batch. Write isBatchIndependent(fn, rows). fn takes a list of rows and returns a list of rows. Return true only if, for every i, fn(rows)[i] equals fn([rows[i]])[0] (numbers within 1e-9). This is the exact check used to catch real library bugs.',
+      starter: L(['function isBatchIndependent(fn, rows) {', '  ', '}']),
+      hint: 'var all = fn(rows); loop i; var alone = fn([rows[i]])[0]; compare each number in all[i] and alone with Math.abs(a - b) > 1e-9 -> return false.',
+      sol: L(['function isBatchIndependent(fn, rows) {', '  var all = fn(rows);', '  for (var i = 0; i < rows.length; i++) {', '    var alone = fn([rows[i]])[0];', '    for (var j = 0; j < alone.length; j++) {', '      if (Math.abs(all[i][j] - alone[j]) > 1e-9) { return false; }', '    }', '  }', '  return true;', '}']),
+      tests: [{ a: '[function (rs) { return rs.map(function (r) { return r.map(function (v) { return v * 2; }); }); }, [[1,2],[3,4]]]', e: 'true' },
+              { a: '[function (rs) { var m = 0; rs.forEach(function (r) { m += r[0]; }); m /= rs.length; return rs.map(function (r) { return r.map(function (v) { return v - m; }); }); }, [[1,2],[3,4]]]', e: 'false' },
+              { a: '[function (rs) { return rs; }, [[5]]]', e: 'true', h: 1 }] },
+    { id: 'fp16', l: 10, name: 'clampFp16', title: 'Half-precision range',
+      desc: 'fp16 (half precision) cannot hold numbers beyond about +/-65504; bigger values become Infinity and often NaN later. Write clampFp16(xs): force every number into the range -65504 to 65504 and leave the rest unchanged.',
+      starter: L(['function clampFp16(xs) {', '  ', '}']),
+      hint: 'xs.map(function (x) { return Math.max(-65504, Math.min(65504, x)); })',
+      sol: L(['function clampFp16(xs) {', '  return xs.map(function (x) { return Math.max(-65504, Math.min(65504, x)); });', '}']),
+      tests: [{ a: '[[70000,-70000,5]]', e: '[65504,-65504,5]' }, { a: '[[1,2,3]]', e: '[1,2,3]' }, { a: '[[65504,-65504]]', e: '[65504,-65504]', h: 1 }] },
+
+    /* ---------------- Level 11: Research rigor ---------------- */
+    { id: 'meanstd', l: 11, name: 'meanStd', title: 'Mean and spread',
+      desc: 'Results from several random seeds need a mean and a spread. Write meanStd(xs) returning [mean, std] where std is the SAMPLE standard deviation: square root of (sum of squared distances from the mean / (n - 1)). One value gives std 0.',
+      starter: L(['function meanStd(xs) {', '  ', '}']),
+      hint: 'Compute the mean first. If n is 1 return [mean, 0]. Otherwise sum (x - mean)^2, divide by n - 1, Math.sqrt.',
+      sol: L(['function meanStd(xs) {', '  var n = xs.length, m = 0, i;', '  for (i = 0; i < n; i++) { m += xs[i]; }', '  m /= n;', '  if (n < 2) { return [m, 0]; }', '  var v = 0;', '  for (i = 0; i < n; i++) { v += (xs[i] - m) * (xs[i] - m); }', '  return [m, Math.sqrt(v / (n - 1))];', '}']),
+      tests: [{ a: '[[2,4,4,4,5,5,7,9]]', e: '[5, Math.sqrt(32/7)]' }, { a: '[[3]]', e: '[3,0]' }, { a: '[[1,3]]', e: '[2, Math.sqrt(2)]', h: 1 }] },
+    { id: 'gain', l: 11, name: 'isRealGain', title: 'Is the gain real?',
+      desc: 'Write isRealGain(baseline, treated), two lists of scores from different seeds. Return true only if mean(treated) - mean(baseline) is bigger than 2 times the LARGER of the two sample standard deviations. Otherwise it may just be noise.',
+      starter: L(['function isRealGain(baseline, treated) {', '  ', '}']),
+      hint: 'Write a small helper inside that returns both mean and sample std (n - 1), then compare.',
+      sol: L(['function isRealGain(baseline, treated) {', '  function ms(xs) {', '    var n = xs.length, m = 0, i;', '    for (i = 0; i < n; i++) { m += xs[i]; }', '    m /= n;', '    var v = 0;', '    for (i = 0; i < n; i++) { v += (xs[i] - m) * (xs[i] - m); }', '    return [m, n < 2 ? 0 : Math.sqrt(v / (n - 1))];', '  }', '  var a = ms(baseline), b = ms(treated);', '  return b[0] - a[0] > 2 * Math.max(a[1], b[1]);', '}']),
+      tests: [{ a: '[[80.1,80.3,79.9],[80.2,80.4,80.0]]', e: 'false' }, { a: '[[70,70.2,69.8],[75,75.2,74.8]]', e: 'true' }, { a: '[[75,75.2,74.8],[70,70.2,69.8]]', e: 'false', h: 1 }] },
+    { id: 'leak', l: 11, name: 'findLeak', title: 'Catch a data leak',
+      desc: 'If the same example ID is in both the training set and the test set, the test score is a lie. Write findLeak(trainIds, testIds): return the IDs that appear in both, sorted from smallest to largest ([] if none).',
+      starter: L(['function findLeak(trainIds, testIds) {', '  ', '}']),
+      hint: 'Filter trainIds to those where testIds.indexOf(id) !== -1, then .sort(function (a, b) { return a - b; }).',
+      sol: L(['function findLeak(trainIds, testIds) {', '  return trainIds.filter(function (id) { return testIds.indexOf(id) !== -1; }).sort(function (a, b) { return a - b; });', '}']),
+      tests: [{ a: '[[1,2,3],[3,4,2]]', e: '[2,3]' }, { a: '[[1,2],[3,4]]', e: '[]' }, { a: '[[9,5,7],[7,9,1]]', e: '[7,9]', h: 1 }] },
+
+    /* ---------------- Level 12: Staff level ---------------- */
+    { id: 'calib', l: 12, name: 'calibrationGap', title: 'Calibration gap',
+      desc: 'confs are the model\'s confidence per prediction (0 to 1); correct is 1 if it was right, else 0. Write calibrationGap(confs, correct): the absolute difference between the average confidence and the actual accuracy (average of correct). 0 means well calibrated on average.',
+      starter: L(['function calibrationGap(confs, correct) {', '  ', '}']),
+      hint: 'Average both lists, then Math.abs(avgConf - avgCorrect).',
+      sol: L(['function calibrationGap(confs, correct) {', '  var c = 0, k = 0, n = confs.length;', '  for (var i = 0; i < n; i++) { c += confs[i]; k += correct[i]; }', '  return Math.abs(c / n - k / n);', '}']),
+      tests: [{ a: '[[0.9,0.9,0.9,0.9],[1,1,0,1]]', e: '0.15' }, { a: '[[0.5,0.5],[1,0]]', e: '0' }, { a: '[[1,1],[0,0]]', e: '1', h: 1 }] },
+    { id: 'shift', l: 12, name: 'meanShift', title: 'Spot distribution shift',
+      desc: 'Write meanShift(train, prod): how far the production average moved, measured in training standard deviations: |mean(prod) - mean(train)| / std(train). Use the POPULATION std (divide by n). If train std is 0, return 0 when the means are equal and Infinity otherwise.',
+      starter: L(['function meanShift(train, prod) {', '  ', '}']),
+      hint: 'Compute mean and population std of train, mean of prod. Handle std === 0 first.',
+      sol: L(['function meanShift(train, prod) {', '  function mean(a) { var s = 0; for (var i = 0; i < a.length; i++) { s += a[i]; } return s / a.length; }', '  var mt = mean(train), mp = mean(prod), v = 0;', '  for (var i = 0; i < train.length; i++) { v += (train[i] - mt) * (train[i] - mt); }', '  var sd = Math.sqrt(v / train.length);', '  if (sd === 0) { return mt === mp ? 0 : Infinity; }', '  return Math.abs(mp - mt) / sd;', '}']),
+      tests: [{ a: '[[1,2,3],[4,5,6]]', e: '3 / Math.sqrt(2/3)' }, { a: '[[1,2,3],[1,2,3]]', e: '0' }, { a: '[[5,5],[7]]', e: 'Infinity', h: 1 }] },
+    { id: 'slice', l: 12, name: 'groupAccuracy', title: 'Accuracy per group',
+      desc: 'An average can hide a group the model fails. Write groupAccuracy(preds, labels, groups): return an object mapping each group name to the accuracy inside that group. Example groups ["a","a","b"].',
+      starter: L(['function groupAccuracy(preds, labels, groups) {', '  ', '}']),
+      hint: 'Keep two objects: total[g] and right[g]. Loop once, then build the result with right[g] / total[g].',
+      sol: L(['function groupAccuracy(preds, labels, groups) {', '  var total = {}, right = {}, out = {};', '  for (var i = 0; i < preds.length; i++) {', '    var g = groups[i];', '    total[g] = (total[g] || 0) + 1;', '    right[g] = (right[g] || 0) + (preds[i] === labels[i] ? 1 : 0);', '  }', '  for (var k in total) { out[k] = right[k] / total[k]; }', '  return out;', '}']),
+      tests: [{ a: '[[1,0,1,1],[1,0,0,0],["a","a","b","b"]]', e: '{"a":1,"b":0}' }, { a: '[[1,0],[1,1],["x","x"]]', e: '{"x":0.5}' }, { a: '[[1,1,0],[1,0,0],["p","q","q"]]', e: '{"p":1,"q":0.5}', h: 1 }] },
+    { id: 'logit', l: 12, name: 'trainLogistic', title: 'Capstone: train a classifier',
+      desc: 'Train logistic regression on single numbers with plain gradient descent. Start w = 0, b = 0. Each epoch, over ALL data: p = 1 / (1 + exp(-(w*x + b))); dw = average of (p - y) * x; db = average of (p - y); then w = w - lr * dw, b = b - lr * db. Write trainLogistic(xs, ys, lr, epochs) returning [w, b].',
+      starter: L(['function trainLogistic(xs, ys, lr, epochs) {', '  var w = 0, b = 0;', '  ', '  return [w, b];', '}']),
+      hint: 'Outer loop over epochs. Inside, loop over the data accumulating dw and db, divide by xs.length, THEN update w and b (once per epoch).',
+      sol: L(['function trainLogistic(xs, ys, lr, epochs) {', '  var w = 0, b = 0, n = xs.length;', '  for (var e = 0; e < epochs; e++) {', '    var dw = 0, db = 0;', '    for (var i = 0; i < n; i++) {', '      var p = 1 / (1 + Math.exp(-(w * xs[i] + b)));', '      dw += (p - ys[i]) * xs[i];', '      db += (p - ys[i]);', '    }', '    w -= lr * dw / n;', '    b -= lr * db / n;', '  }', '  return [w, b];', '}']),
+      tests: [{ a: '[[-3,-2,-1,1,2,3],[0,0,0,1,1,1],0.5,1]', e: '[0.5,0]' },
+              { a: '[[-3,-2,-1,1,2,3],[0,0,0,1,1,1],0.5,200]', c: 'r[0] > 1 && [-3,-2,-1,1,2,3].every(function (x, i) { return (1 / (1 + Math.exp(-(r[0] * x + r[1]))) > 0.5) === (i >= 3); })' },
+              { a: '[[0,1,2,3],[0,0,1,1],0.5,0]', e: '[0,0]', h: 1 }] }
+  ];
+
+  root.MLCODE = { EX: EX, runTests: runTests };
+  if (typeof module !== 'undefined') { module.exports = root.MLCODE; }
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
 (function(){
 'use strict';
 var L=window.MLLADDER.LEVELS, BANK=window.MLLADDER.BANK, PER=8, KEY='mlladder.v1';
@@ -203,10 +572,122 @@ function header(){
   '<div class="meta"><span><b>Level '+S.level+' of 12:</b> '+esc(L[S.level-1])+'</span><span>'+m+'/'+PER+' mastered</span></div>'+
   '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
   '<div class="meta"><span>Answered '+S.stats.ans+' &middot; correct '+S.stats.right+' &middot; unsure '+S.stats.idk+'</span>'+
-  '<span class="lnk" id="menu">levels</span></div>';
+  '<span class="lnk" id="menu">levels</span></div>'+tabsHtml();
+}
+
+var EX=window.MLCODE.EX;
+function tabsHtml(){
+  var solved=0;for(var i=0;i<EX.length;i++)if(S.code[EX[i].id]&&S.code[EX[i].id].ok)solved++;
+  return '<div class="tabs"><button id="tq" class="'+(S.mode==='quiz'?'on':'')+'">Quiz</button><button id="tc" class="'+(S.mode==='code'?'on':'')+'">Code ('+solved+'/'+EX.length+')</button></div>';
+}
+function wireTabs(){
+  var q=document.getElementById('tq'),c=document.getElementById('tc');
+  if(q)q.onclick=function(){S.mode='quiz';S.view='list';save();render();};
+  if(c)c.onclick=function(){S.mode='code';S.view='list';save();render();};
+}
+function exSolved(id){return !!(S.code[id]&&S.code[id].ok);}
+function levelDone(l){for(var i=0;i<EX.length;i++)if(EX[i].l===l&&!exSolved(EX[i].id))return false;return true;}
+function unlocked(l){return l===1||l<=S.top||levelDone(l-1);}
+function exById(id){for(var i=0;i<EX.length;i++)if(EX[i].id===id)return EX[i];return null;}
+function nextEx(){for(var i=0;i<EX.length;i++)if(!exSolved(EX[i].id)&&unlocked(EX[i].l))return EX[i];return null;}
+
+function codeHeader(){
+  return '<h1>ML Ladder</h1><div class="sub">Type real code. Easy first, then harder, same 12 levels.</div>'+tabsHtml();
+}
+function renderCode(){
+  if(S.view&&S.view!=='list'){var e=exById(S.view);if(e)return renderEx(e);}
+  var h=codeHeader()+'<div class="card small">Runs right on your phone, no internet needed. Tap an exercise, type the function, press Run. Hidden tests check tricky cases. Finishing a level\'s exercises unlocks the next one (or level up in the Quiz).</div>';
+  var nx=nextEx();
+  if(nx)h+='<button class="go" data-ex="'+nx.id+'">Continue: '+esc(nx.title)+'</button>';
+  for(var l=1;l<=12;l++){
+    var open=unlocked(l),n=0,d=0;
+    h+='<div class="card"><b>Level '+l+': '+esc(L[l-1])+'</b>'+(open?'':' <span class="small">(locked: finish level '+(l-1)+' code or quiz)</span>');
+    for(var i=0;i<EX.length;i++){if(EX[i].l!==l)continue;n++;var ok=exSolved(EX[i].id);if(ok)d++;
+      h+='<button class="'+(open?'':'lock')+'" '+(open?'data-ex="'+EX[i].id+'"':'disabled')+'>'+(ok?'&#10003; ':(open?'&#9654; ':'&#128274; '))+esc(EX[i].title)+'</button>';}
+    h+='<div class="small">'+d+'/'+n+' solved</div></div>';
+  }
+  app.innerHTML=h;wireTabs();
+  var bs=app.querySelectorAll('button[data-ex]'),k;
+  for(k=0;k<bs.length;k++){(function(b){b.onclick=function(){S.view=b.getAttribute('data-ex');save();render();window.scrollTo(0,0);};})(bs[k]);}
+}
+function normCode(c){return c.replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/—/g,'--').replace(/–/g,'-').replace(/ /g,' ');}
+function fmtResults(r){
+  if(r.err)return '<div class="res f">'+esc(r.err)+'</div>';
+  var h='',p=0;
+  for(var i=0;i<r.results.length;i++){
+    var t=r.results[i];if(t.pass)p++;
+    if(t.pass)h+='<div class="res p">&#10003; '+(t.hidden?'hidden test':'test')+' '+(i+1)+' passed</div>';
+    else if(t.hidden)h+='<div class="res f">&#10007; A hidden test failed (it checks a tricky case, like an empty list, a tie, or a huge number).</div>';
+    else h+='<div class="res f">&#10007; input '+esc(t.a)+'<br>expected '+esc(t.e)+'<br>you got '+esc(t.err?('error: '+t.err):t.got)+'</div>';
+  }
+  return '<div class="res"><b>'+p+'/'+r.results.length+' tests pass</b></div>'+h;
+}
+function runCode(ex,code,cb){
+  var done=false,w=null,url=null,timer=null;
+  function finish(r){if(done)return;done=true;clearTimeout(timer);try{if(w)w.terminate();}catch(e){}try{if(url)URL.revokeObjectURL(url);}catch(e){}cb(r);}
+  try{
+    var src=window.MLCODE.runTests.toString()+';onmessage=function(e){var d=e.data;postMessage(runTests(d.code,d.name,d.tests));};';
+    url=URL.createObjectURL(new Blob([src],{type:'application/javascript'}));
+    w=new Worker(url);
+    w.onmessage=function(e){finish(e.data);};
+    w.onerror=function(e){finish({ok:false,err:'Error while running: '+(e&&e.message?e.message:'unknown'),results:[]});};
+    timer=setTimeout(function(){finish({ok:false,err:'Timed out after 3 seconds. Is there a loop that never ends?',results:[]});},3000);
+    w.postMessage({code:code,name:ex.name,tests:ex.tests});
+  }catch(err){
+    finish(window.MLCODE.runTests(code,ex.name,ex.tests));
+  }
+}
+function renderEx(ex){
+  var st=S.code[ex.id]||{ok:0,tries:0,peek:0};
+  var draft=(S.drafts&&S.drafts[ex.id]!==undefined)?S.drafts[ex.id]:ex.starter;
+  var h=codeHeader()+'<div class="card"><div class="small"><span class="tag">level '+ex.l+'</span>'+(st.ok?'<span class="tag">&#10003; solved</span>':'')+'</div>'+
+   '<p class="q">'+esc(ex.title)+'</p><p>'+esc(ex.desc)+'</p>'+
+   '<textarea id="ta" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" wrap="off"></textarea>'+
+   '<div class="sym" id="sym"></div>'+
+   '<div class="row"><button class="go" id="run">Run tests</button><button id="hint">Hint</button></div>'+
+   '<div class="row"><button id="show">Show answer</button><button id="reset">Reset code</button></div>'+
+   '<div id="out"></div></div><button id="back">Back to exercises</button>';
+  app.innerHTML=h;wireTabs();
+  var ta=document.getElementById('ta');ta.value=draft;
+  ta.oninput=function(){if(!S.drafts)S.drafts={};S.drafts[ex.id]=ta.value;save();};
+  var syms=['{','}','(',')','[',']',';','=','"',"'",'<','>','+','-','*','/','!','&','|',',','.','  '];
+  var sh='',i;for(i=0;i<syms.length;i++)sh+='<button data-s="'+esc(syms[i])+'">'+(syms[i]==='  '?'tab':esc(syms[i]))+'</button>';
+  document.getElementById('sym').innerHTML=sh;
+  var sb=document.querySelectorAll('#sym button'),k;
+  for(k=0;k<sb.length;k++){(function(b){b.onclick=function(){
+    var v=b.getAttribute('data-s'),a=ta.selectionStart,e=ta.selectionEnd;
+    ta.value=ta.value.slice(0,a)+v+ta.value.slice(e);ta.focus();ta.selectionStart=ta.selectionEnd=a+v.length;ta.oninput();};})(sb[k]);}
+  var out=document.getElementById('out');
+  document.getElementById('run').onclick=function(){
+    var btn=this;btn.disabled=true;out.innerHTML='<div class="res">Running...</div>';
+    runCode(ex,normCode(ta.value),function(r){
+      btn.disabled=false;
+      var c=S.code[ex.id]||{ok:0,tries:0,peek:0};c.tries=(c.tries||0)+1;
+      var msg=fmtResults(r);
+      if(r.ok){
+        c.ok=1;S.code[ex.id]=c;S.stats.ans++;S.stats.right++;
+        msg='<div class="why"><b>All tests pass.</b> '+(c.peek?'You looked at the answer first, so type it again from memory later to lock it in. ':'')+'Nice work.</div>'+msg+'<button class="go" id="nx">'+(nextEx()?'Next exercise':'Back to exercises')+'</button>';
+      }else{
+        S.code[ex.id]=c;
+        msg+='<div class="small" style="margin-top:6px">Stuck? Tap Hint. Still stuck? Show answer explains it; then try typing it yourself.</div>';
+      }
+      out.innerHTML=msg;save();
+      var nx=document.getElementById('nx');
+      if(nx)nx.onclick=function(){var n=nextEx();S.view=n?n.id:'list';save();render();window.scrollTo(0,0);};
+      var tc=document.getElementById('tc');if(tc){var s2=0,q;for(q=0;q<EX.length;q++)if(exSolved(EX[q].id))s2++;tc.innerHTML='Code ('+s2+'/'+EX.length+')';}
+    });
+  };
+  document.getElementById('hint').onclick=function(){out.innerHTML='<div class="why"><b>Hint:</b> '+esc(ex.hint)+'</div>'+out.innerHTML;};
+  document.getElementById('show').onclick=function(){
+    var c=S.code[ex.id]||{ok:0,tries:0,peek:0};c.peek=1;S.code[ex.id]=c;save();
+    out.innerHTML='<div class="why idk"><b>One way to write it:</b><pre class="sol">'+esc(ex.sol)+'</pre>Read it line by line, then clear the box and type it yourself.</div>';
+  };
+  document.getElementById('reset').onclick=function(){if(confirm('Replace your code with the starter?')){ta.value=ex.starter;ta.oninput();out.innerHTML='';}};
+  document.getElementById('back').onclick=function(){S.view='list';save();render();};
 }
 
 function render(){
+  if(S.mode==='code')return renderCode();
   if(!cur){var id=pick();cur={id:id,order:shuffle([0,1,2,3])};answered=false;}
   var q=BANK[cur.id],h=header();
   var again=(bx(cur.id)>=0&&bx(cur.id)<2)?'<span class="tag">asking again</span>':'';
@@ -265,6 +746,7 @@ function wire(){
   var b=document.querySelectorAll('#opts button'),i;
   for(i=0;i<b.length;i++){(function(el){el.onclick=function(){answer(parseInt(el.getAttribute('data-o'),10));};})(b[i]);}
   var m=document.getElementById('menu');if(m)m.onclick=menu;
+  wireTabs();
 }
 
 function menu(){
@@ -276,9 +758,10 @@ function menu(){
   app.innerHTML=h;
   document.getElementById('go').onclick=function(){S.level=parseInt(document.getElementById('jmp').value,10);cur=null;save();render();};
   document.getElementById('back').onclick=function(){render();};
-  document.getElementById('rst').onclick=function(){if(confirm('Erase all progress?')){S={level:1,top:1,box:{},due:[],n:0,stats:{ans:0,right:0,idk:0},done:false};cur=null;save();render();}};
+  document.getElementById('rst').onclick=function(){if(confirm('Erase all progress?')){S={level:1,top:1,box:{},due:[],n:0,stats:{ans:0,right:0,idk:0},done:false,code:{},drafts:{},mode:'quiz',view:'list'};cur=null;save();render();}};
 }
 load();
+if(!S.code)S.code={};if(!S.drafts)S.drafts={};if(!S.mode)S.mode='quiz';if(!S.view)S.view='list';
 if(!(S&&S.box&&S.due))S={level:1,top:1,box:{},due:[],n:0,stats:{ans:0,right:0,idk:0},done:false};
 render();
 })();
