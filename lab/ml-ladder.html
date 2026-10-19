@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>ML Ladder</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0f1419;color:#e6e6e6;font:17px/1.45 -apple-system,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+#app{max-width:640px;margin:0 auto;padding:14px 16px 40px}
+h1{font-size:20px;margin:6px 0 2px}
+.sub{color:#8fa1b3;font-size:14px;margin-bottom:10px}
+.bar{height:10px;background:#1f2933;border-radius:5px;overflow:hidden;margin:4px 0 2px}
+.bar i{display:block;height:100%;background:#4cc38a;width:0}
+.meta{display:flex;justify-content:space-between;color:#8fa1b3;font-size:13px}
+.card{background:#18202a;border-radius:12px;padding:14px;margin:12px 0}
+.q{font-size:19px;font-weight:600;margin:0 0 12px}
+button{font:inherit;color:#e6e6e6;background:#243242;border:1px solid #33475c;border-radius:10px;padding:12px;margin:6px 0;width:100%;text-align:left}
+button:active{background:#2e4258}
+button.idk{background:#2a2433;border-color:#4a3d5c;color:#c9b8e0}
+button.ok{background:#17402c;border-color:#4cc38a}
+button.bad{background:#47202a;border-color:#e05d6f}
+button.go{background:#2f6fed;border-color:#2f6fed;text-align:center;font-weight:600}
+button[disabled]{opacity:.85}
+.why{margin-top:10px;padding:10px;border-left:4px solid #4cc38a;background:#13261e;border-radius:6px}
+.why.bad{border-color:#e05d6f;background:#2a161b}
+.why.idk{border-color:#a98bd6;background:#221b2e}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:9px;background:#243242;color:#8fa1b3;margin-right:6px}
+.small{font-size:13px;color:#8fa1b3}
+select{font:inherit;background:#243242;color:#e6e6e6;border:1px solid #33475c;border-radius:8px;padding:6px}
+a,.lnk{color:#6aa9ff}
+</style></head><body><div id="app"></div>
+<script>
+/* ML Ladder question bank: 12 levels x 8 questions. First option in "o" is the CORRECT one; the page shuffles them.
+   Plain-language questions; levels 10-12 draw on senior-lab's own findings (dtype casts, batch independence,
+   evidence tiers, controls). "w" = why, shown after every answer. ES5 only (iPhone 7 Safari 15). */
+(function (root) {
+  'use strict';
+  var LEVELS = [
+    'What ML is', 'Data basics', 'First models', 'How training works', 'Neural networks',
+    'Judging a model', 'Deep learning practice', 'Modern architectures', 'LLMs and tuning',
+    'Numerics and systems', 'Research rigor', 'Staff level'
+  ];
+  var B = [
+    /* ---------- 1 What ML is ---------- */
+    { l: 1, q: 'What is machine learning, in one sentence?', o: ['Programs that learn patterns from examples instead of being given hand-written rules', 'Robots that think like people', 'A database that stores lots of data', 'A faster kind of computer chip'], w: 'Instead of a programmer writing every rule, the program is shown examples and finds the rule itself.' },
+    { l: 1, q: 'A spam filter is trained on thousands of emails labeled "spam" or "not spam". What kind of learning is this?', o: ['Supervised learning (learning from labeled examples)', 'Unsupervised learning', 'Reinforcement learning', 'No learning, just rules'], w: 'Supervised means every training example comes with the right answer (the label).' },
+    { l: 1, q: 'Predicting tomorrow\'s temperature as a number is called...', o: ['Regression', 'Classification', 'Clustering', 'Compression'], w: 'Regression predicts a number. Classification predicts a category.' },
+    { l: 1, q: 'Deciding whether a photo shows a cat or a dog is called...', o: ['Classification', 'Regression', 'Normalization', 'Debugging'], w: 'The answer is one of a fixed set of categories, so it is classification.' },
+    { l: 1, q: 'Grouping customers into similar groups WITHOUT any labels is called...', o: ['Clustering (a kind of unsupervised learning)', 'Supervised classification', 'Regression', 'Backpropagation'], w: 'With no labels you can only look for structure in the data itself, such as groups.' },
+    { l: 1, q: 'In ML, what is a "model"?', o: ['The learned function that turns inputs into predictions', 'The computer it runs on', 'The training dataset', 'A diagram of the project'], w: 'A model is the thing that was learned: numbers (parameters) plus a recipe for using them on new input.' },
+    { l: 1, q: 'What is "training"?', o: ['Adjusting the model\'s numbers so its predictions get closer to the right answers', 'Typing the rules by hand', 'Copying the data to a new folder', 'Running the finished model on new data'], w: 'Training is the adjusting phase. Using the finished model on new data is called inference.' },
+    { l: 1, q: 'What is "inference"?', o: ['Using an already-trained model to make a prediction', 'Training the model for longer', 'Cleaning the data', 'Measuring how big the model is'], w: 'Inference = prediction time. No learning happens.' },
+
+    /* ---------- 2 Data basics ---------- */
+    { l: 2, q: 'What is a "feature"?', o: ['One measurable input property, like a house\'s size or number of rooms', 'The final answer the model gives', 'A bug in the code', 'A type of chart'], w: 'Features are the inputs. The thing you predict is the label or target.' },
+    { l: 2, q: 'What is a "label" (or "target")?', o: ['The correct answer you want the model to predict', 'The name of the file', 'The model\'s size', 'A column of random noise'], w: 'The label is the right answer attached to a training example.' },
+    { l: 2, q: 'Why do we split data into a training set and a test set?', o: ['To check the model on examples it never learned from', 'To make training faster', 'To make the dataset smaller for storage', 'Because the library requires it'], w: 'Judging a model on data it trained on only tells you it memorized. The test set shows real, unseen performance.' },
+    { l: 2, q: 'A common split is 80% train / 20% test. Why must the test data stay untouched until the end?', o: ['Peeking and tuning on it makes the final score look better than reality', 'It would use up the memory', 'The test set is too small to matter', 'It would delete the training data'], w: 'Every time you adjust things because of the test score, the test set leaks into your decisions and stops being an honest check.' },
+    { l: 2, q: 'Some rows have missing values. What is a reasonable, common thing to do?', o: ['Fill them in (e.g., with the median) or drop them, and note what you did', 'Ignore it, models handle anything', 'Replace them with a random huge number', 'Delete the whole dataset'], w: 'Missing values must be handled deliberately; the choice can change results, so record it.' },
+    { l: 2, q: 'Why do we often scale features (e.g., to a similar range) before training?', o: ['So features with big numbers (like income) do not drown out small ones (like age)', 'To make the data look nicer', 'To make files smaller', 'Scaling is never useful'], w: 'Many models are sensitive to the size of numbers, so putting features on a similar scale helps training behave.' },
+    { l: 2, q: 'A dataset has 95 cats and 5 dogs. What is the problem?', o: ['It is imbalanced; a model that always says "cat" would score 95% while being useless', 'There are too many cats to count', 'Nothing, 95% is always great', 'The dataset is too small to open'], w: 'With imbalanced classes, plain accuracy can look high while the model never finds the rare class.' },
+    { l: 2, q: 'More data of the same good quality generally...', o: ['Helps the model generalize better', 'Always makes the model worse', 'Has no effect ever', 'Only helps if you also make the model smaller'], w: 'More good examples usually reduce overfitting and improve results, though with diminishing returns.' },
+
+    /* ---------- 3 First models ---------- */
+    { l: 3, q: 'Linear regression fits...', o: ['A straight line (or flat plane) through the data', 'A random cloud', 'A tree of yes/no questions', 'A list of rules typed by a person'], w: 'It finds the line (weights and an intercept) that best matches the numbers.' },
+    { l: 3, q: 'A decision tree predicts by...', o: ['Asking a series of yes/no questions about the features', 'Averaging every training example', 'Drawing a straight line', 'Guessing randomly'], w: 'Each branch is a question like "is size > 100?" and each leaf is a prediction.' },
+    { l: 3, q: 'k-nearest neighbors (k-NN) predicts a new point by...', o: ['Looking at the k most similar training examples and letting them vote', 'Fitting a straight line', 'Training for many hours', 'Asking a person'], w: 'It stores the data and answers by similarity: "what are the closest examples labeled?"' },
+    { l: 3, q: 'What is "overfitting"?', o: ['The model memorizes the training data, including its noise, and does badly on new data', 'The model is too small to learn anything', 'Training took too long', 'The dataset is too large'], w: 'Great training score + poor test score is the classic overfitting signature.' },
+    { l: 3, q: 'What is "underfitting"?', o: ['The model is too simple to capture the pattern, so it does badly even on training data', 'The model memorized everything', 'The test set is too big', 'The labels were shuffled on purpose'], w: 'Underfitting = poor on both train and test; the model lacks the capacity or training to learn the pattern.' },
+    { l: 3, q: 'Training accuracy is 99% but test accuracy is 70%. The most likely problem?', o: ['Overfitting', 'Underfitting', 'The GPU is broken', 'The test set is too clean'], w: 'A big gap between train and test points to overfitting.' },
+    { l: 3, q: 'Which is a simple, usually-safe first model to try on a new tabular problem?', o: ['A simple baseline such as linear/logistic regression or a small tree', 'The biggest neural network you can find', 'A model nobody has tested', 'No model, just guess'], w: 'Start simple. A baseline tells you how much any fancier model actually adds.' },
+    { l: 3, q: 'Logistic regression, despite the name, is mainly used for...', o: ['Classification (it outputs a probability of a class)', 'Predicting prices as exact numbers', 'Clustering', 'Image generation'], w: 'The name is historical; it squeezes a linear score into a 0-to-1 probability.' },
+
+    /* ---------- 4 How training works ---------- */
+    { l: 4, q: 'What is a "loss function"?', o: ['A number that measures how wrong the model\'s predictions are', 'The amount of data lost during copying', 'A bug report', 'The time training takes'], w: 'Training tries to push this number down.' },
+    { l: 4, q: 'What does "gradient descent" do?', o: ['Repeatedly nudges the model\'s numbers in the direction that lowers the loss', 'Deletes the worst training examples', 'Picks random numbers until one works', 'Makes the dataset smaller'], w: 'The gradient says which way is "uphill" for the loss; stepping the other way goes downhill.' },
+    { l: 4, q: 'What is the "learning rate"?', o: ['How big each nudge (step) is during training', 'How fast the GPU runs', 'How many examples there are', 'The percentage of correct answers'], w: 'Too big and training bounces around or explodes; too small and it crawls.' },
+    { l: 4, q: 'The loss goes to NaN (not-a-number) after a few steps. A common first suspect?', o: ['The learning rate is too high, or a bad number like log(0) or divide-by-zero', 'The model is too accurate', 'There is too much data', 'The test set is too small'], w: 'Exploding steps or illegal math (log of zero, dividing by zero) are classic NaN causes.' },
+    { l: 4, q: 'What is an "epoch"?', o: ['One full pass through the whole training dataset', 'One single example', 'One layer of the network', 'One second of training'], w: 'Ten epochs means the model has seen every training example ten times.' },
+    { l: 4, q: 'What is a "batch" (mini-batch)?', o: ['A small group of examples processed together for one update step', 'The whole dataset', 'A saved model file', 'A type of loss'], w: 'Using batches is faster than one example at a time and less heavy than the whole dataset at once.' },
+    { l: 4, q: 'What is a "parameter" (or "weight")?', o: ['A number inside the model that training adjusts', 'A setting you choose before training, like the batch size', 'A column in the data', 'The name of the model'], w: 'Parameters are learned. Settings you choose beforehand are called hyperparameters.' },
+    { l: 4, q: 'What is a "hyperparameter"?', o: ['A setting you choose before training, like learning rate or number of layers', 'A number the model learns by itself', 'A very large dataset', 'A kind of GPU'], w: 'The model cannot learn these by itself; you (or a search) have to pick them.' },
+
+    /* ---------- 5 Neural networks ---------- */
+    { l: 5, q: 'What does one artificial "neuron" compute?', o: ['A weighted sum of its inputs, then a squashing/activation function', 'A photograph', 'A database lookup', 'A random number'], w: 'Multiply each input by a weight, add them up (plus a bias), then pass through an activation.' },
+    { l: 5, q: 'Why do networks need activation functions like ReLU?', o: ['Without them, stacked layers collapse into one big linear function and cannot learn curved patterns', 'They make the network smaller', 'They store the weights', 'They are only for decoration'], w: 'Linear then linear is just linear. The non-linearity is what gives depth its power.' },
+    { l: 5, q: 'ReLU(x) outputs...', o: ['x if x is positive, otherwise 0', 'Always 1', 'The square of x', 'A random number between 0 and 1'], w: 'ReLU = max(0, x). Simple and works well.' },
+    { l: 5, q: 'What is "backpropagation"?', o: ['The method that works out how much each weight contributed to the error, going backward through the layers', 'Running the network backward to generate data', 'Deleting layers', 'Loading a saved model'], w: 'It applies the chain rule from calculus to compute every weight\'s gradient efficiently.' },
+    { l: 5, q: 'What is the "forward pass"?', o: ['Feeding inputs through the layers to get a prediction', 'Updating the weights', 'Saving the model', 'Splitting the data'], w: 'Forward = input to output (prediction). Backward = error back to the weights (gradients).' },
+    { l: 5, q: 'What is a "hidden layer"?', o: ['A layer between the input and the output', 'A layer you are not allowed to see', 'The final answer layer', 'A layer that deletes data'], w: 'It is "hidden" because its values are neither the raw input nor the final output.' },
+    { l: 5, q: 'Softmax is typically used at the output of a classifier to...', o: ['Turn raw scores into probabilities that add up to 1', 'Make the model faster', 'Delete small weights', 'Shuffle the classes'], w: 'It converts a vector of scores into a probability for each class.' },
+    { l: 5, q: 'Which loss is typical for a multi-class classifier?', o: ['Cross-entropy', 'Mean absolute length', 'Image size', 'Epoch count'], w: 'Cross-entropy punishes confident wrong answers heavily, which suits probabilities.' },
+
+    /* ---------- 6 Judging a model ---------- */
+    { l: 6, q: 'A disease affects 1% of people. A model that always says "healthy" gets 99% accuracy. What does that show?', o: ['Accuracy alone can be badly misleading on rare events', 'The model is excellent', 'The test set is broken', 'Nothing, accuracy is always enough'], w: 'It never finds a single sick person. You need metrics that look at the rare class.' },
+    { l: 6, q: 'What does "precision" answer?', o: ['Of the items the model flagged as positive, how many really were?', 'Of all real positives, how many did the model find?', 'How fast is the model?', 'How large is the model?'], w: 'Precision = true positives / everything flagged positive.' },
+    { l: 6, q: 'What does "recall" answer?', o: ['Of all the real positives, how many did the model find?', 'Of the flagged items, how many were right?', 'How many layers it has?', 'How long training took?'], w: 'Recall = true positives / all actual positives.' },
+    { l: 6, q: '"Data leakage" means...', o: ['Information from the test set or from the answer sneaks into training, making scores look unrealistically good', 'The data file got deleted', 'The server ran out of memory', 'The dataset is too small'], w: 'Example: normalizing with statistics computed on ALL the data before splitting. The model indirectly saw the test set.' },
+    { l: 6, q: 'What is cross-validation?', o: ['Splitting the data into several folds and rotating which fold is held out for testing, then averaging the scores', 'Testing on the training set', 'Training two models on the same data and picking one', 'Running the code twice'], w: 'It gives a steadier estimate than one lucky or unlucky split.' },
+    { l: 6, q: 'Why compare a fancy model to a simple "baseline"?', o: ['To prove the fancy model actually adds value over something trivial', 'Because baselines are always more accurate', 'To make the report longer', 'It is just tradition'], w: 'If a coin flip or a one-line rule matches your model, the model is not doing much.' },
+    { l: 6, q: 'A model scores 80.1% vs. another at 80.3% on one run each. What should you be careful about?', o: ['The gap may be random noise; check with several seeds before calling a winner', 'The second is certainly better', 'Neither number means anything ever', 'Always pick the lower one'], w: 'Training has randomness. A small gap from a single run is not evidence.' },
+    { l: 6, q: 'Which dataset do you use to choose hyperparameters like the learning rate?', o: ['A separate validation set, not the test set', 'The test set', 'No data needed', 'Only the first ten rows'], w: 'Train / validation / test: tune on validation, report once on test.' },
+
+    /* ---------- 7 Deep learning practice ---------- */
+    { l: 7, q: 'What is "regularization" for?', o: ['Discouraging the model from becoming too complex so it overfits less', 'Making the model larger', 'Speeding up the GPU', 'Cleaning missing values'], w: 'Examples: weight decay, dropout, early stopping, data augmentation.' },
+    { l: 7, q: 'What does "dropout" do during training?', o: ['Randomly switches off some neurons each step so the network cannot rely on any single one', 'Deletes the dataset', 'Stops training forever', 'Doubles the learning rate'], w: 'It forces redundancy, which reduces overfitting. It is turned off at inference time.' },
+    { l: 7, q: 'What is "early stopping"?', o: ['Stopping training when the validation score stops improving', 'Stopping the program with Ctrl-C', 'Using fewer features', 'Skipping the test set'], w: 'Past a point, a model keeps improving on training data while getting worse on new data.' },
+    { l: 7, q: 'What is "data augmentation" for images?', o: ['Creating varied copies (flips, crops, brightness) of training images to teach robustness', 'Adding more GPUs', 'Compressing the images', 'Labeling images by hand'], w: 'It effectively gives the model more varied examples. It is applied to training data only.' },
+    { l: 7, q: 'Adam is...', o: ['A popular optimizer that adapts the step size for each weight', 'A dataset of faces', 'A type of GPU', 'A loss function'], w: 'An optimizer is the rule for how weights get updated. Adam is a common default.' },
+    { l: 7, q: 'Why does fp16/bf16 ("half precision") training save memory and time?', o: ['Each number uses 16 bits instead of 32, so there is less to store and move', 'It deletes half the layers', 'It halves the dataset', 'It makes numbers exact'], w: 'The cost is less precision and a smaller range, which can cause problems (see later levels).' },
+    { l: 7, q: 'What does model.eval() (PyTorch) change?', o: ['Switches layers like dropout and batch-norm to their inference behavior', 'Evaluates the loss automatically', 'Saves the model', 'Does nothing'], w: 'Forgetting it leaves dropout on and batch-norm updating, so predictions come out noisy or inconsistent.' },
+    { l: 7, q: 'What does "with torch.no_grad():" do?', o: ['Skips gradient bookkeeping, saving memory and time when you only need predictions', 'Makes training faster', 'Disables the GPU', 'Freezes the dataset'], w: 'Use it for inference; it does not change the model\'s outputs, only the tracking.' },
+
+    /* ---------- 8 Modern architectures ---------- */
+    { l: 8, q: 'What does a convolutional layer (CNN) look for?', o: ['The same small pattern (like an edge) in every location of an image', 'Only the center pixel', 'The file name', 'Random pixels'], w: 'A small filter slides across the image, reusing the same weights everywhere.' },
+    { l: 8, q: 'Why use a CNN rather than a plain fully-connected network on images?', o: ['Far fewer weights and it builds in "a cat is a cat wherever it appears"', 'CNNs cannot overfit', 'Plain networks cannot handle numbers', 'CNNs need no training'], w: 'Weight sharing and local patterns match how images work.' },
+    { l: 8, q: 'What problem did RNNs (recurrent networks) try to solve?', o: ['Handling sequences by carrying a memory from step to step', 'Image compression', 'Sorting numbers', 'Printing results'], w: 'They read one item at a time and keep a hidden state. Long sequences were hard for them.' },
+    { l: 8, q: 'In one phrase, what is "attention"?', o: ['Letting each item look at all the other items and weight how relevant each is', 'Making the GPU focus on one task', 'A type of dropout', 'Reading the data twice'], w: 'Each position computes how much to borrow from every other position.' },
+    { l: 8, q: 'What did the Transformer change compared with RNNs?', o: ['It processes all positions at once with attention, so it trains much faster in parallel', 'It reads one word at a time', 'It removed the need for data', 'It only works on images'], w: 'Dropping the step-by-step loop made huge-scale training practical.' },
+    { l: 8, q: 'What is an "embedding"?', o: ['A list of numbers that represents something (a word, an item) so similar things have similar numbers', 'A picture inside a document', 'A way to compress files', 'A database index'], w: 'Embeddings let a model measure similarity as distance between vectors.' },
+    { l: 8, q: 'Why do Transformers need "positional" information?', o: ['Attention alone does not know the order of items, so position must be added', 'To make the files smaller', 'Because words are numbers', 'They do not need it'], w: 'Without position, "dog bites man" and "man bites dog" would look the same.' },
+    { l: 8, q: 'What is "transfer learning"?', o: ['Starting from a model already trained on a big task and adapting it to yours', 'Copying data between servers', 'Training on the test set', 'Moving a model to another computer'], w: 'Reusing what a model already learned saves data and compute.' },
+
+    /* ---------- 9 LLMs and tuning ---------- */
+    { l: 9, q: 'What does a language model fundamentally do?', o: ['Predicts the next token given the tokens so far', 'Looks up answers in a database', 'Translates only', 'Searches the web'], w: 'Everything else (chat, code, summaries) is built on repeated next-token prediction.' },
+    { l: 9, q: 'What is a "token"?', o: ['A chunk of text (a word, part of a word, or symbol) the model reads as one unit', 'A password', 'One character exactly', 'A GPU core'], w: 'Tokenizers split text into pieces like "un", "believ", "able".' },
+    { l: 9, q: 'What is the "context window"?', o: ['The maximum number of tokens the model can look at at once', 'The training time', 'The size of the GPU', 'A screen in the app'], w: 'Anything beyond the window is invisible to the model.' },
+    { l: 9, q: 'What does the "temperature" setting change when generating text?', o: ['How random or adventurous the sampling is; low is predictable, high is varied', 'The GPU heat', 'The model size', 'The dataset'], w: 'Low temperature picks likely tokens; high temperature gives more diverse (and riskier) output.' },
+    { l: 9, q: 'What is "fine-tuning"?', o: ['Continuing training of a pretrained model on a smaller, task-specific dataset', 'Fixing typos in the data', 'Training from scratch', 'Lowering the temperature'], w: 'It specializes a general model for your job.' },
+    { l: 9, q: 'What is LoRA, in simple terms?', o: ['Fine-tuning by training small add-on matrices while keeping the big original weights frozen', 'A new GPU brand', 'A way to remove layers', 'A dataset format'], w: 'Far fewer trainable numbers, so it needs much less memory.' },
+    { l: 9, q: 'What is quantization?', o: ['Storing model numbers with fewer bits (e.g., 8 or 4 instead of 16) to shrink memory and speed it up', 'Counting how many layers', 'Training with more data', 'Increasing precision'], w: 'The trade-off is a small loss of accuracy; how small depends on the method and model.' },
+    { l: 9, q: 'What is the "KV cache" for in LLM generation?', o: ['It stores earlier attention keys/values so each new token does not recompute everything', 'It stores the user\'s password', 'It caches the training data', 'It makes the model smaller'], w: 'Without it, generating each new token would redo the work for the entire prompt.' },
+
+    /* ---------- 10 Numerics and systems (senior-lab findings) ---------- */
+    { l: 10, q: 'You cast a model to half precision with model.half(). Why can that behave differently from using autocast (mixed precision)?', o: ['.half() converts everything, while autocast keeps sensitive operations in higher precision', 'They are exactly the same', 'Autocast is slower and less accurate by design', '.half() only affects the optimizer'], w: 'Autocast picks a precision per operation. Blanket .half() can overflow or lose precision in operations that needed float32 (a bug class found in real libraries).' },
+    { l: 10, q: 'A function computes in float32, but its result is returned in the wrong dtype (e.g., always float32 for a half-precision model). What kind of bug is that?', o: ['A missing "cast back" to the input\'s dtype; later layers may crash or silently mix precisions', 'Not a bug', 'A learning-rate problem', 'A dataset problem'], w: 'Computing in float32 for stability is fine; forgetting to convert the result back to the caller\'s dtype is a classic silent bug.' },
+    { l: 10, q: 'In PyTorch, why does the eval() batch norm give the same answer for an example no matter which other examples share its batch?', o: ['In eval mode it uses stored running statistics rather than the current batch\'s statistics', 'Batch norm is switched off completely', 'Batches are always the same size', 'Because of dropout'], w: 'This property is called batch independence: one example\'s prediction should not depend on its neighbors at inference.' },
+    { l: 10, q: 'You run the same input alone, then inside a batch of 8, and get slightly different outputs. What should you check first?', o: ['Whether something mixes examples across the batch, or whether it is only tiny floating-point differences', 'Nothing, this is always expected', 'Whether the GPU is plugged in', 'Whether the dataset has labels'], w: 'Tiny differences (e.g., 1e-7) can come from different math paths. Large ones mean examples are leaking into each other.' },
+    { l: 10, q: 'Why can adding up the same numbers in a different order give a slightly different float result?', o: ['Floating-point rounding happens at each step, so order matters', 'Computers sometimes forget numbers', 'Addition is not allowed to be reordered by law', 'It never differs'], w: 'Floating-point addition is not perfectly associative, which is why parallel and sequential sums can differ in the last digits.' },
+    { l: 10, q: 'What is the practical difference between bf16 and fp16?', o: ['bf16 has the same range as float32 but less precision; fp16 has more precision but a small range and overflows easily', 'They are identical', 'bf16 is for text, fp16 for images', 'fp16 is always safer'], w: 'That range difference is why fp16 training often needs loss scaling and bf16 usually does not.' },
+    { l: 10, q: 'A tensor is created "lazily" (its shape/metadata is only computed later). What can go wrong if code assumes it is already computed?', o: ['Code that reads metadata early can see stale or placeholder values and behave differently from the eager path', 'Nothing, lazy and eager always match', 'It always runs faster and is always right', 'The GPU explodes'], w: 'A real finding style: lazy and eager execution paths should produce identical metadata, and tests should compare them.' },
+    { l: 10, q: 'Your model produces NaN only on the GPU in half precision, never on CPU in float32. A sensible first step?', o: ['Rerun the failing step in float32 and find the first operation that produces inf or NaN', 'Delete the GPU code', 'Lower the number of epochs', 'Ignore it, NaN is harmless'], w: 'Isolate the first bad value. Overflow in a narrow-range dtype is the usual culprit.' },
+
+    /* ---------- 11 Research rigor ---------- */
+    { l: 11, q: 'Why run a "control" in an experiment?', o: ['It shows what happens WITHOUT your change, so you know the change is what mattered', 'It is required by the GPU', 'To make the table longer', 'To slow things down'], w: 'Without a control, a win could be caused by anything that also changed.' },
+    { l: 11, q: 'What does "pre-registering" a prediction mean?', o: ['Writing down what you expect to happen BEFORE running the experiment', 'Registering your project with a company', 'Saving the code', 'Posting results early'], w: 'It stops you from explaining away whatever result you get after the fact.' },
+    { l: 11, q: 'A result "failed" (the idea did not help). What is the honest thing to do?', o: ['Report it like any other result, with the numbers', 'Quietly drop it', 'Change the metric until it wins', 'Rerun until it looks good'], w: 'Negative results are information; hiding them makes the field believe things that are not true.' },
+    { l: 11, q: 'You test 20 variants and report only the best. What is the danger?', o: ['By chance alone, the best of 20 can look good (a selection effect), so it may not hold up', 'None, picking the best is the point', 'It uses too much disk', 'The variants cannot be compared'], w: 'Count how many things you tried, and confirm the winner on fresh data or seeds.' },
+    { l: 11, q: 'What is the difference between "this code looks wrong" and a verified finding?', o: ['A verified finding was actually executed and shown to fail with a concrete input and output', 'No difference', 'A finding is just a longer opinion', 'Reading is stronger evidence than running'], w: 'A code reading is a lead. Running it and watching the wrong answer appear is evidence.' },
+    { l: 11, q: 'You measured something once and got a big improvement. What do you do before claiming it?', o: ['Repeat with several seeds and a fair comparison, and look for a mistake in your own setup', 'Publish immediately', 'Delete the baseline', 'Lower the bar'], w: 'Surprising results are most often bugs in the measurement. Try to break your own result first.' },
+    { l: 11, q: 'Both models were compared, but one got tuned hyperparameters and the other used defaults. What is wrong?', o: ['The comparison is unfair; both arms need equal tuning effort', 'Nothing, defaults are always fine', 'The tuned one is always worse', 'You must tune neither'], w: 'An un-tuned rival makes almost any new method look good.' },
+    { l: 11, q: 'What is a "retraction" done well?', o: ['Saying plainly what was claimed, what was wrong, and what the corrected evidence shows', 'Deleting the post silently', 'Blaming the library', 'Waiting until nobody notices'], w: 'Naming your own error specifically builds trust. A false positive caught early is a good outcome.' },
+
+    /* ---------- 12 Staff level ---------- */
+    { l: 12, q: 'The data your model sees in production slowly stops looking like the training data. This is called...', o: ['Distribution shift (or drift)', 'Overfitting only', 'Normalization', 'Batching'], w: 'Models are only trustworthy on data that resembles what they learned from, so monitor for shift.' },
+    { l: 12, q: 'A model says "90% sure" on many predictions but is right only 60% of the time. What is wrong?', o: ['It is poorly calibrated: its confidence does not match its real accuracy', 'It is underfitted only', 'It has too few layers', 'Nothing, confidence is arbitrary'], w: 'Calibration means that among predictions made at 90% confidence, about 90% are correct.' },
+    { l: 12, q: 'Why is loading an untrusted model file with Python pickle (torch.load without safeguards) risky?', o: ['Pickle can run arbitrary code while loading, so a malicious file can take over your machine', 'It makes the model slower', 'It deletes the weights', 'It only fails on Windows'], w: 'Prefer formats and options that only load tensors (e.g., safetensors, weights_only loading) for untrusted files.' },
+    { l: 12, q: 'A "scaling law" in ML describes...', o: ['How loss tends to fall predictably as model size, data and compute grow', 'How to scale images to fit a screen', 'A law about GPU prices', 'How to shrink a model'], w: 'It lets teams predict the payoff of a bigger run before paying for it.' },
+    { l: 12, q: 'A pipeline works in testing but fails in production because training did one preprocessing step and serving did it slightly differently. This is called...', o: ['Training-serving skew', 'Dropout', 'Early stopping', 'Gradient clipping'], w: 'Any difference between how data is prepared in training versus serving silently degrades the model.' },
+    { l: 12, q: 'A reviewer claims "the fix works" but gives no failing test. What is the staff-level response?', o: ['Ask for a minimal case that fails before the fix and passes after, plus a control showing unrelated behavior unchanged', 'Approve it, they seem sure', 'Reject it without reading', 'Merge and see what happens'], w: 'Red-then-green on a concrete case is the bar. A control checks you did not break something else.' },
+    { l: 12, q: 'Your model\'s metric improved, but it is worse for one group of users. What does a good engineer do?', o: ['Break the metric down by group, investigate, and decide whether the average is hiding harm', 'Report only the average', 'Remove that group from the test set', 'Assume it is noise'], w: 'Averages can hide real failures on subgroups; slice the evaluation.' },
+    { l: 12, q: 'You can run only one more experiment before a deadline. How do you choose it?', o: ['Pick the one that would most change your decision, with a clear prediction and a control', 'Pick the fanciest one', 'Pick the one that is most likely to confirm what you already believe', 'Pick randomly'], w: 'An experiment is only worth its cost if some outcome would change what you do next.' }
+  ];
+  root.MLLADDER = { LEVELS: LEVELS, BANK: B };
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+(function(){
+'use strict';
+var L=window.MLLADDER.LEVELS, BANK=window.MLLADDER.BANK, PER=8, KEY='mlladder.v1';
+var app=document.getElementById('app');
+var S={level:1,top:1,box:{},due:[],n:0,stats:{ans:0,right:0,idk:0},done:false};
+var cur=null,answered=false;
+
+function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);if(o&&o.level)S=o;}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function rnd(n){return Math.floor(Math.random()*n);}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=rnd(i+1),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function idsAt(l){var r=[];for(var i=0;i<BANK.length;i++)if(BANK[i].l===l)r.push(i);return r;}
+function bx(i){return S.box[i]===undefined?-1:S.box[i];}
+function mastered(l){var c=0,ids=idsAt(l);for(var k=0;k<ids.length;k++)if(bx(ids[k])>=2)c++;return c;}
+
+function pick(){
+  var k;
+  for(k=0;k<S.due.length;k++){ if(S.due[k].at<=S.n){var d=S.due.splice(k,1)[0];return d.id;} }
+  var ids=idsAt(S.level),fresh=[];
+  for(k=0;k<ids.length;k++)if(bx(ids[k])<0)fresh.push(ids[k]);
+  if(fresh.length&&Math.random()<0.85)return fresh[rnd(fresh.length)];
+  var pool=[];
+  for(k=0;k<BANK.length;k++){ if(BANK[k].l<=S.level&&bx(k)>=0&&bx(k)<9)pool.push(k); }
+  var weak=[];for(k=0;k<ids.length;k++)if(bx(ids[k])<2&&bx(ids[k])>=0)weak.push(ids[k]);
+  if(weak.length&&Math.random()<0.6)return weak[rnd(weak.length)];
+  if(pool.length)return pool[rnd(pool.length)];
+  if(fresh.length)return fresh[rnd(fresh.length)];
+  return ids[rnd(ids.length)];
+}
+
+function header(){
+  var m=mastered(S.level),pct=Math.round(100*m/PER);
+  return '<h1>ML Ladder</h1><div class="sub">Endless questions. "I don\'t know" is always a fine answer.</div>'+
+  '<div class="meta"><span><b>Level '+S.level+' of 12:</b> '+esc(L[S.level-1])+'</span><span>'+m+'/'+PER+' mastered</span></div>'+
+  '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+  '<div class="meta"><span>Answered '+S.stats.ans+' &middot; correct '+S.stats.right+' &middot; unsure '+S.stats.idk+'</span>'+
+  '<span class="lnk" id="menu">levels</span></div>';
+}
+
+function render(){
+  if(!cur){var id=pick();cur={id:id,order:shuffle([0,1,2,3])};answered=false;}
+  var q=BANK[cur.id],h=header();
+  var again=(bx(cur.id)>=0&&bx(cur.id)<2)?'<span class="tag">asking again</span>':'';
+  h+='<div class="card"><div class="small">'+again+'<span class="tag">level '+q.l+'</span></div><p class="q">'+esc(q.q)+'</p><div id="opts">';
+  for(var i=0;i<4;i++){h+='<button data-o="'+cur.order[i]+'">'+esc(q.o[cur.order[i]])+'</button>';}
+  h+='<button class="idk" data-o="-1">I don\'t know (explain it to me)</button></div><div id="fb"></div></div>';
+  app.innerHTML=h;wire();
+}
+
+function schedule(id,gap){S.due.push({id:id,at:S.n+gap});}
+
+function answer(o){
+  if(answered)return;answered=true;
+  var q=BANK[cur.id],id=cur.id,b=bx(id),good=(o===0),idk=(o===-1);
+  S.n++;S.stats.ans++;
+  var btns=document.querySelectorAll('#opts button'),i;
+  for(i=0;i<btns.length;i++){
+    var v=parseInt(btns[i].getAttribute('data-o'),10);
+    btns[i].disabled=true;
+    if(v===0)btns[i].className+=' ok';
+    else if(v===o&&!good)btns[i].className+=' bad';
+  }
+  var msg,cls='';
+  if(good){
+    S.stats.right++;
+    if(b<0)S.box[id]=2;else S.box[id]=Math.min(9,b+1);
+    if(b>=0&&b<2){schedule(id,10);}
+    msg='Correct. ';
+  }else{
+    S.box[id]=0;schedule(id,3);
+    if(idk){S.stats.idk++;cls=' idk';msg='No problem, that is how you learn it. ';}else{cls=' bad';msg='Not quite. ';}
+    msg+='The answer: <b>'+esc(q.o[0])+'</b>. ';
+  }
+  var extra='';
+  if(!good)extra='<div class="small" style="margin-top:6px">This one will come back in a few questions.</div>';
+  var lvlmsg=checkLevelUp();
+  document.getElementById('fb').innerHTML='<div class="why'+cls+'">'+msg+esc(q.w)+extra+'</div>'+
+    (lvlmsg?'<div class="why" style="margin-top:8px"><b>'+lvlmsg+'</b></div>':'')+
+    '<button class="go" id="next">Next question</button>';
+  document.getElementById('next').onclick=function(){cur=null;save();render();};
+  save();
+}
+
+function checkLevelUp(){
+  if(S.level<12&&mastered(S.level)>=PER-1){
+    S.level++;if(S.level>S.top)S.top=S.level;
+    return 'Level up! Now level '+S.level+': '+esc(L[S.level-1])+'.';
+  }
+  if(S.level===12&&mastered(12)>=PER-1&&!S.done){
+    S.done=true;return 'You cleared all 12 levels. The questions keep coming, mixed from every level, so nothing fades.';
+  }
+  return '';
+}
+
+function wire(){
+  var b=document.querySelectorAll('#opts button'),i;
+  for(i=0;i<b.length;i++){(function(el){el.onclick=function(){answer(parseInt(el.getAttribute('data-o'),10));};})(b[i]);}
+  var m=document.getElementById('menu');if(m)m.onclick=menu;
+}
+
+function menu(){
+  var h='<h1>Levels</h1><div class="card">',i;
+  for(i=1;i<=12;i++){h+='<div>'+(i===S.level?'&#9654; ':'')+'<b>'+i+'.</b> '+esc(L[i-1])+' <span class="small">('+mastered(i)+'/'+PER+')</span></div>';}
+  h+='</div><div class="card small">Jump to a level (your progress there is kept): <select id="jmp">';
+  for(i=1;i<=12;i++)h+='<option value="'+i+'"'+(i===S.level?' selected':'')+'>'+i+'. '+esc(L[i-1])+'</option>';
+  h+='</select><button class="go" id="go">Go</button><button id="rst">Reset all progress</button></div><button class="go" id="back">Back to questions</button>';
+  app.innerHTML=h;
+  document.getElementById('go').onclick=function(){S.level=parseInt(document.getElementById('jmp').value,10);cur=null;save();render();};
+  document.getElementById('back').onclick=function(){render();};
+  document.getElementById('rst').onclick=function(){if(confirm('Erase all progress?')){S={level:1,top:1,box:{},due:[],n:0,stats:{ans:0,right:0,idk:0},done:false};cur=null;save();render();}};
+}
+load();
+if(!(S&&S.box&&S.due))S={level:1,top:1,box:{},due:[],n:0,stats:{ans:0,right:0,idk:0},done:false};
+render();
+})();
+</script></body></html>
