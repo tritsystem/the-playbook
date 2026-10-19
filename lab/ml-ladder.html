@@ -49,7 +49,8 @@ button.lock{opacity:.45}
   var LEVELS = [
     'What ML is', 'Data basics', 'First models', 'How training works', 'Neural networks',
     'Judging a model', 'Deep learning practice', 'Modern architectures', 'LLMs and tuning',
-    'Numerics and systems', 'Research rigor', 'Staff level'
+    'Numerics and systems', 'Research rigor', 'Staff level',
+    'Training at scale', 'Data and pipelines', 'Serving and cost', 'Production evaluation'
   ];
   var B = [
     /* ---------- 1 What ML is ---------- */
@@ -171,6 +172,47 @@ button.lock{opacity:.45}
     { l: 12, q: 'A reviewer claims "the fix works" but gives no failing test. What is the staff-level response?', o: ['Ask for a minimal case that fails before the fix and passes after, plus a control showing unrelated behavior unchanged', 'Approve it, they seem sure', 'Reject it without reading', 'Merge and see what happens'], w: 'Red-then-green on a concrete case is the bar. A control checks you did not break something else.' },
     { l: 12, q: 'Your model\'s metric improved, but it is worse for one group of users. What does a good engineer do?', o: ['Break the metric down by group, investigate, and decide whether the average is hiding harm', 'Report only the average', 'Remove that group from the test set', 'Assume it is noise'], w: 'Averages can hide real failures on subgroups; slice the evaluation.' },
     { l: 12, q: 'You can run only one more experiment before a deadline. How do you choose it?', o: ['Pick the one that would most change your decision, with a clear prediction and a control', 'Pick the fanciest one', 'Pick the one that is most likely to confirm what you already believe', 'Pick randomly'], w: 'An experiment is only worth its cost if some outcome would change what you do next.' }
+,
+
+    /* ---------- 13 Training at scale ---------- */
+    { l: 13, q: 'What does "data parallel" training do?', o: ['Every GPU holds a full copy of the model and trains on a different slice of the batch, then the gradients are averaged', 'Every GPU holds a different layer of the model', 'Every GPU trains a different model and the best one wins', 'One GPU trains while the others wait'], w: 'The copies stay identical because they all apply the same averaged update. It is the simplest way to use many GPUs.' },
+    { l: 13, q: 'Why do GPUs run an "all-reduce" after computing gradients?', o: ['To combine everyone\'s gradients so every copy of the model takes the same step', 'To delete the gradients and save memory', 'To check the data for errors', 'To copy the model to the CPU'], w: 'All-reduce sums (then averages) a value across all workers and gives every worker the result.' },
+    { l: 13, q: 'You double the batch size by adding GPUs. A common starting rule for the learning rate is...', o: ['Raise it in proportion (about double), usually with a warm-up period', 'Always cut it in half', 'Set it to zero', 'It never needs to change'], w: 'The "linear scaling rule" is a rule of thumb. It works up to a point; at very large batches you need extra care.' },
+    { l: 13, q: 'What is gradient accumulation for?', o: ['Getting the effect of a bigger batch by adding up gradients over several small batches before one update', 'Making gradients smaller', 'Skipping the backward pass', 'Saving the model to disk'], w: 'It lets a GPU with limited memory act as if it trained on a larger batch.' },
+    { l: 13, q: 'To resume a training run EXACTLY where it stopped, which should a checkpoint contain?', o: ['Model weights, optimizer state, the step count, and the data and random-number state', 'Only the model weights', 'Only the final loss value', 'Only the training code'], w: 'Without the optimizer state (like Adam\'s running averages) the first steps after resuming behave differently and can hurt training.' },
+    { l: 13, q: 'Why save checkpoints every so often during a long run?', o: ['A crash or preempted machine then loses minutes of work instead of days', 'It makes training faster', 'It improves accuracy', 'The framework requires it'], w: 'More frequent checkpoints lose less work but cost time and disk, so you choose a balance.' },
+    { l: 13, q: 'Two runs with the same random seed on a GPU give slightly different numbers. A likely reason?', o: ['Some GPU operations add numbers in a nondeterministic order, and floating-point rounding depends on the order', 'The seed was ignored by Python', 'The GPU is broken', 'The data changed'], w: 'Floating-point addition is not perfectly associative. Deterministic modes exist but can be slower.' },
+    { l: 13, q: 'What does sharded training (e.g., FSDP) mainly save?', o: ['Memory: parameters, gradients and optimizer state are split across GPUs instead of fully copied on each', 'Disk space', 'Network cost', 'Nothing, it only changes names'], w: 'Each GPU keeps only a slice and gathers the rest on demand, so much larger models fit.' },
+
+    /* ---------- 14 Data and pipelines ---------- */
+    { l: 14, q: 'What is a "schema check" on a dataset?', o: ['Verifying every row has the expected fields and types before training', 'Counting the number of rows', 'Drawing a chart of the data', 'Compressing the file'], w: 'A wrong type or missing field caught early is far cheaper than a silent training bug.' },
+    { l: 14, q: 'Why choose train or test from a stable hash of an ID rather than shuffling randomly every run?', o: ['An example always lands in the same split, so test data never leaks into training between runs', 'Hashing is faster than shuffling', 'Random shuffles are illegal', 'It makes the model more accurate'], w: 'With a fresh random split each time, examples drift between train and test across experiments and results become incomparable.' },
+    { l: 14, q: 'The same customer appears in many rows, some in train and some in test. What is the risk?', o: ['The model can memorize that customer, so the test score is too optimistic; split by customer, not by row', 'No risk, rows are independent', 'The model will be too small', 'The customer will see the test'], w: 'This is "group leakage". Keep all rows of one entity on the same side of the split.' },
+    { l: 14, q: 'About 10% of your labels are wrong. What does that do?', o: ['It limits the score you can trust and can teach the model wrong patterns, so measure and reduce it', 'Nothing, models ignore wrong labels', 'It makes the model faster', 'It only matters for images'], w: 'Noisy labels put a ceiling on measurable accuracy. Review a sample by hand to see how bad it is.' },
+    { l: 14, q: 'Cohen\'s kappa measures...', o: ['How much two labelers agree beyond what chance alone would produce', 'How accurate a model is', 'How many labels are missing', 'How fast labeling is'], w: 'Raw agreement flatters: two people guessing on a skewed task still agree a lot. Kappa corrects for that.' },
+    { l: 14, q: 'Why version your datasets?', o: ['So you can recreate exactly what an older model was trained on and explain its behavior', 'To make downloads faster', 'Because models require version numbers', 'To hide old data'], w: 'If you cannot name the exact data, you cannot reproduce or debug a past model.' },
+    { l: 14, q: 'A feature is computed one way in training (a batch SQL query) and another way in the live app. What is this called?', o: ['Training-serving skew; share one definition (for example a feature store or shared code)', 'Overfitting', 'Regularization', 'Early stopping'], w: 'The model learns on one version of the feature and is fed a slightly different one in production.' },
+    { l: 14, q: 'Why read a few dozen raw random rows before trusting a pipeline?', o: ['Silent bugs such as wrong units, shifted columns or duplicates are visible by eye long before metrics show them', 'It is required by law', 'It speeds up training', 'Metrics are always wrong'], w: 'Looking at the data is the cheapest, highest-value check there is.' },
+
+    /* ---------- 15 Serving and cost ---------- */
+    { l: 15, q: 'A service reports p99 latency of 800 ms. That means...', o: ['99% of requests finished faster than 800 ms and 1% were slower', 'The average request takes 800 ms', 'It handles 800 requests', 'The slowest request was 800 ms'], w: 'Percentiles describe the tail. p50 is the typical request; p99 is what unlucky users see.' },
+    { l: 15, q: 'Why track p95/p99 latency instead of only the average?', o: ['A few slow outliers hurt real users but barely move the average', 'Averages cannot be computed', 'Percentiles are cheaper to measure', 'Averages are always lower'], w: 'Averages hide the tail. Users remember the slow request.' },
+    { l: 15, q: 'Why does dynamic (or continuous) batching raise throughput?', o: ['It groups requests that arrive around the same time so the GPU does more work per pass', 'It makes each request faster alone', 'It removes the need for a GPU', 'It compresses responses'], w: 'GPUs are most efficient on bigger batches; batching trades a tiny wait for much more total work per second.' },
+    { l: 15, q: 'What makes the KV cache of a language model grow?', o: ['Longer sequences, more layers and heads, and more requests being served at once', 'Only the vocabulary size', 'Only the learning rate', 'It never grows'], w: 'Each token keeps keys and values for every layer, for every active request, which is why long contexts are memory-hungry.' },
+    { l: 15, q: 'Quantizing a model to 4-bit mainly buys you...', o: ['Less memory and often faster inference, at some accuracy cost you must measure', 'Higher accuracy', 'A bigger context window for free', 'Nothing'], w: 'Always compare the quantized model with the original on your own task before shipping.' },
+    { l: 15, q: 'How can the cost per million tokens go down on the same GPU?', o: ['Raise throughput (keep the GPU busy), because the hourly price is fixed', 'Lower the learning rate', 'Use shorter variable names', 'It cannot'], w: 'Cost per token = hourly price divided by tokens produced per hour.' },
+    { l: 15, q: 'Short sequences in a batch are padded up to the longest. What is the problem and a fix?', o: ['The padding wastes compute; group sequences of similar length together', 'The padding changes the answer; remove the longest', 'There is no problem', 'Padding makes the batch faster'], w: 'Bucketing by length keeps batches tight so less of the work is padding.' },
+    { l: 15, q: 'Why keep the previous model version deployed after releasing a new one?', o: ['So you can roll back in seconds if the new one misbehaves', 'To use up spare servers', 'Models cannot be deleted', 'It improves accuracy'], w: 'A fast rollback turns many incidents into minor ones.' },
+
+    /* ---------- 16 Production evaluation and design ---------- */
+    { l: 16, q: 'The offline metric improved, but the live A/B test shows no gain. Is that plausible?', o: ['Yes: live traffic can differ from the offline data, or the metric may not capture what users care about', 'No, it must be a bug in the A/B tool', 'Yes, but only on weekends', 'No, offline metrics are always right'], w: 'Offline gains are a hint, not proof. The online test is the real judge.' },
+    { l: 16, q: 'Why fix the sample size before an A/B test starts?', o: ['To have enough power to see the effect you care about and to avoid stopping early on luck', 'To make the test cheaper', 'The tool requires it', 'To pick the winner in advance'], w: 'Too few users means real effects are missed; stopping when it "looks good" finds false wins.' },
+    { l: 16, q: 'You check the A/B result every day and stop the first time it looks significant. What goes wrong?', o: ['The false-positive rate climbs well above what you planned', 'Nothing, this is best practice', 'The test becomes more accurate', 'The users notice'], w: 'Repeated peeking gives randomness many chances to look like a win. Use a planned stopping rule.' },
+    { l: 16, q: 'The population stability index (PSI) compares...', o: ['How a feature\'s distribution now differs from a reference distribution', 'Two models\' sizes', 'Two labelers\' agreement', 'Training and inference speed'], w: 'A larger PSI means the inputs have shifted. Many teams alert somewhere above 0.2 to 0.25.' },
+    { l: 16, q: 'What is a canary release?', o: ['Sending a small share of traffic to the new version first and watching it', 'Releasing only on Fridays', 'Testing only on the developer\'s laptop', 'Releasing to everyone at once'], w: 'If the canary looks bad, only a few users were affected and you roll back.' },
+    { l: 16, q: 'True labels arrive weeks late. How can you watch model quality today?', o: ['Monitor input drift, the distribution of predictions, and proxy metrics, then confirm when labels arrive', 'Wait for the labels', 'You cannot', 'Look at the training loss'], w: 'Early-warning signals catch many problems before the labels do.' },
+    { l: 16, q: 'What is an "error budget"?', o: ['The amount of failure your reliability target allows; when it is used up you slow risky releases', 'The money set aside for fixing bugs', 'A limit on how many models you train', 'A list of known bugs'], w: 'A 99.9% target allows 0.1% failures; the budget turns reliability into a number you can spend or save.' },
+    { l: 16, q: 'After a production incident, what should a good postmortem focus on?', o: ['What in the system let it happen and how to prevent it, not who to blame', 'Finding the person who made the change', 'Hiding the details', 'Only fixing the one bug'], w: 'Blameless reviews surface the real causes, which are usually missing checks, not careless people.' }
   ];
   root.MLLADDER = { LEVELS: LEVELS, BANK: B };
 })(typeof window !== 'undefined' ? window : this);
@@ -526,7 +568,117 @@ button.lock{opacity:.45}
       sol: L(['function trainLogistic(xs, ys, lr, epochs) {', '  var w = 0, b = 0, n = xs.length;', '  for (var e = 0; e < epochs; e++) {', '    var dw = 0, db = 0;', '    for (var i = 0; i < n; i++) {', '      var p = 1 / (1 + Math.exp(-(w * xs[i] + b)));', '      dw += (p - ys[i]) * xs[i];', '      db += (p - ys[i]);', '    }', '    w -= lr * dw / n;', '    b -= lr * db / n;', '  }', '  return [w, b];', '}']),
       tests: [{ a: '[[-3,-2,-1,1,2,3],[0,0,0,1,1,1],0.5,1]', e: '[0.5,0]' },
               { a: '[[-3,-2,-1,1,2,3],[0,0,0,1,1,1],0.5,200]', c: 'r[0] > 1 && [-3,-2,-1,1,2,3].every(function (x, i) { return (1 / (1 + Math.exp(-(r[0] * x + r[1]))) > 0.5) === (i >= 3); })' },
-              { a: '[[0,1,2,3],[0,0,1,1],0.5,0]', e: '[0,0]', h: 1 }] }
+              { a: '[[0,1,2,3],[0,0,1,1],0.5,0]', e: '[0,0]', h: 1 }] },
+
+    /* ---------------- Level 13: Training at scale ---------------- */
+    { id: 'eff', l: 13, name: 'effectiveBatch', title: 'Effective batch size',
+      desc: 'With several GPUs and gradient accumulation, one weight update sees many examples. Write effectiveBatch(perGpu, gpus, accumSteps): the number of examples behind one update = perGpu * gpus * accumSteps.',
+      starter: L(['function effectiveBatch(perGpu, gpus, accumSteps) {', '  ', '}']),
+      hint: 'Multiply the three numbers together.',
+      sol: L(['function effectiveBatch(perGpu, gpus, accumSteps) {', '  return perGpu * gpus * accumSteps;', '}']),
+      tests: [{ a: '[8,4,2]', e: '64' }, { a: '[16,1,1]', e: '16' }, { a: '[4,8,4]', e: '128', h: 1 }] },
+    { id: 'lrscale', l: 13, name: 'scaleLr', title: 'Scale the learning rate',
+      desc: 'A common rule of thumb: when the batch gets k times bigger, scale the learning rate by k too (the "linear scaling rule"; it needs warm-up and stops working at huge batches). Write scaleLr(baseLr, baseBatch, newBatch): baseLr * newBatch / baseBatch.',
+      starter: L(['function scaleLr(baseLr, baseBatch, newBatch) {', '  ', '}']),
+      hint: 'return baseLr * newBatch / baseBatch;',
+      sol: L(['function scaleLr(baseLr, baseBatch, newBatch) {', '  return baseLr * newBatch / baseBatch;', '}']),
+      tests: [{ a: '[0.1,256,512]', e: '0.2' }, { a: '[0.1,256,64]', e: '0.025' }, { a: '[0.01,32,32]', e: '0.01', h: 1 }] },
+    { id: 'shard', l: 13, name: 'shardIndices', title: 'Shard the data across workers',
+      desc: 'In data-parallel training each worker (rank) reads only its share of the examples. Write shardIndices(n, rank, world): the positions i from 0 to n-1 where i % world equals rank. (% gives the remainder after dividing: 7 % 4 is 3.) Example: n=10, rank=1, world=4 gives [1,5,9].',
+      starter: L(['function shardIndices(n, rank, world) {', '  ', '}']),
+      hint: 'Loop i from 0 to n - 1; when i % world === rank, push i to the answer list.',
+      sol: L(['function shardIndices(n, rank, world) {', '  var out = [];', '  for (var i = 0; i < n; i++) {', '    if (i % world === rank) { out.push(i); }', '  }', '  return out;', '}']),
+      tests: [{ a: '[10,1,4]', e: '[1,5,9]' }, { a: '[10,0,4]', e: '[0,4,8]' }, { a: '[3,2,4]', e: '[2]', h: 1 }, { a: '[3,3,4]', e: '[]', h: 1 }] },
+    { id: 'allred', l: 13, name: 'allReduceMean', title: 'Average the gradients (all-reduce)',
+      desc: 'After each GPU computes its gradients, they are averaged so every copy takes the same step. Write allReduceMean(workers): workers is a list of gradient lists (one per GPU, all the same length). Return one list: the average of each position across workers. Example [[1,2],[3,4]] gives [2,3].',
+      starter: L(['function allReduceMean(workers) {', '  ', '}']),
+      hint: 'For each position j, add workers[i][j] over every worker i, then divide by the number of workers.',
+      sol: L(['function allReduceMean(workers) {', '  var out = [];', '  for (var j = 0; j < workers[0].length; j++) {', '    var s = 0;', '    for (var i = 0; i < workers.length; i++) { s += workers[i][j]; }', '    out.push(s / workers.length);', '  }', '  return out;', '}']),
+      tests: [{ a: '[[[1,2],[3,4]]]', e: '[2,3]' }, { a: '[[[2],[4],[6]]]', e: '[4]' }, { a: '[[[0,0,0]]]', e: '[0,0,0]', h: 1 }] },
+    { id: 'resume', l: 13, name: 'resumePoint', title: 'Resume after a crash',
+      desc: 'A long run saved checkpoints at certain steps and then crashed. Write resumePoint(checkpointSteps, crashStep): return [resumeFrom, lostSteps]. resumeFrom is the LARGEST checkpoint step that is not after the crash (0 if there is none; then you restart from scratch). lostSteps = crashStep - resumeFrom.',
+      starter: L(['function resumePoint(checkpointSteps, crashStep) {', '  ', '}']),
+      hint: 'best = 0. Loop the checkpoints: if one is <= crashStep and bigger than best, best = it. Return [best, crashStep - best].',
+      sol: L(['function resumePoint(checkpointSteps, crashStep) {', '  var best = 0;', '  for (var i = 0; i < checkpointSteps.length; i++) {', '    var s = checkpointSteps[i];', '    if (s <= crashStep && s > best) { best = s; }', '  }', '  return [best, crashStep - best];', '}']),
+      tests: [{ a: '[[100,200,300],250]', e: '[200,50]' }, { a: '[[100,200],50]', e: '[0,50]' }, { a: '[[100],100]', e: '[100,0]', h: 1 }, { a: '[[],10]', e: '[0,10]', h: 1 }] },
+
+    /* ---------------- Level 14: Data and pipelines ---------------- */
+    { id: 'validate', l: 14, name: 'invalidRows', title: 'Validate the data',
+      desc: 'Bad rows break training silently. Write invalidRows(rows, schema). rows is a list of objects (records); schema maps a field name to the type it must have: "number" or "string". Return the positions of rows where any field is missing, null, or the wrong type. Example schema {"age":"number","name":"string"}.',
+      starter: L(['function invalidRows(rows, schema) {', '  ', '}']),
+      hint: 'For each row, loop over the schema fields (for (var f in schema)). The value is rows[i][f]; bad if undefined, null, or typeof value !== schema[f].',
+      sol: L(['function invalidRows(rows, schema) {', '  var out = [];', '  for (var i = 0; i < rows.length; i++) {', '    var bad = false;', '    for (var f in schema) {', '      var v = rows[i][f];', '      if (v === undefined || v === null || typeof v !== schema[f]) { bad = true; }', '    }', '    if (bad) { out.push(i); }', '  }', '  return out;', '}']),
+      tests: [{ a: '[[{"age":30,"name":"a"},{"age":"x","name":"b"},{"name":"c"}],{"age":"number","name":"string"}]', e: '[1,2]' }, { a: '[[{"age":1,"name":"a"}],{"age":"number","name":"string"}]', e: '[]' }, { a: '[[{"age":null,"name":"a"},{"age":5,"name":"b"}],{"age":"number","name":"string"}]', e: '[0]', h: 1 }] },
+    { id: 'dedupe', l: 14, name: 'dedupe', title: 'Remove duplicate examples',
+      desc: 'Duplicate rows can end up in both train and test and fake a high score. Write dedupe(ids): return the list with repeated items removed, keeping the FIRST time each item appears and the original order. Example [3,1,3,2,1] gives [3,1,2].',
+      starter: L(['function dedupe(ids) {', '  ', '}']),
+      hint: 'Build a list seen. For each id, if seen.indexOf(id) === -1, push it.',
+      sol: L(['function dedupe(ids) {', '  var seen = [];', '  for (var i = 0; i < ids.length; i++) {', '    if (seen.indexOf(ids[i]) === -1) { seen.push(ids[i]); }', '  }', '  return seen;', '}']),
+      tests: [{ a: '[[3,1,3,2,1]]', e: '[3,1,2]' }, { a: '[[1,2,3]]', e: '[1,2,3]' }, { a: '[[]]', e: '[]', h: 1 }, { a: '[["a","b","a"]]', e: '["a","b"]', h: 1 }] },
+    { id: 'hashsplit', l: 14, name: 'hashSplit', title: 'A split that never changes',
+      desc: 'If you shuffle randomly each run, an example can be in the test set today and the training set tomorrow (a leak). Instead decide from the ID itself. Write hashSplit(itemId, testPercent). Start h = 0. For each character of the text: h = (h * 31 + the character code) % 1000003. (Character code: itemId.charCodeAt(i).) Then bucket = h % 100. Return "test" if bucket < testPercent, else "train".',
+      starter: L(['function hashSplit(itemId, testPercent) {', '  var h = 0;', '  ', '}']),
+      hint: 'for (var i = 0; i < itemId.length; i++) { h = (h * 31 + itemId.charCodeAt(i)) % 1000003; } then var bucket = h % 100;',
+      sol: L(['function hashSplit(itemId, testPercent) {', '  var h = 0;', '  for (var i = 0; i < itemId.length; i++) {', '    h = (h * 31 + itemId.charCodeAt(i)) % 1000003;', '  }', '  var bucket = h % 100;', '  return bucket < testPercent ? "test" : "train";', '}']),
+      tests: [{ a: '["user_1",50]', e: '"test"' }, { a: '["user_1",20]', e: '"train"' }, { a: '["abc",50]', e: '"train"' }, { a: '["a",100]', e: '"test"', h: 1 }, { a: '["a",97]', e: '"train"', h: 1 }] },
+    { id: 'kappa', l: 14, name: 'cohenKappa', title: 'Do the labelers agree?',
+      desc: 'Two people label the same items (0 or 1). Raw agreement flatters, because chance alone makes them agree often. Write cohenKappa(a, b): po = fraction where they agree. pe = chance agreement = (fraction of 1s in a)*(fraction of 1s in b) + (fraction of 0s in a)*(fraction of 0s in b). Return (po - pe) / (1 - pe). If pe is 1 return 1.',
+      starter: L(['function cohenKappa(a, b) {', '  ', '}']),
+      hint: 'Count agree, ones in a, ones in b. n = length. Then po = agree / n and pe from the fractions.',
+      sol: L(['function cohenKappa(a, b) {', '  var n = a.length, agree = 0, a1 = 0, b1 = 0;', '  for (var i = 0; i < n; i++) {', '    if (a[i] === b[i]) { agree++; }', '    if (a[i] === 1) { a1++; }', '    if (b[i] === 1) { b1++; }', '  }', '  var po = agree / n;', '  var pe = (a1 / n) * (b1 / n) + ((n - a1) / n) * ((n - b1) / n);', '  if (pe === 1) { return 1; }', '  return (po - pe) / (1 - pe);', '}']),
+      tests: [{ a: '[[1,1,0,0],[1,0,0,0]]', e: '0.5' }, { a: '[[1,0],[1,0]]', e: '1' }, { a: '[[1,0],[0,1]]', e: '-1', h: 1 }, { a: '[[1,1],[1,1]]', e: '1', h: 1 }] },
+
+    /* ---------------- Level 15: Serving and cost ---------------- */
+    { id: 'pctl', l: 15, name: 'latencyPercentile', title: 'Tail latency (p95, p99)',
+      desc: 'Averages hide slow requests. Write latencyPercentile(latencies, p) using the "nearest rank" method: sort the numbers small to big, rank = ceil(p * n / 100) (n = how many), and return the item at that rank (rank 1 is the first item). Example [10,20,30,40,50] at p = 50 gives 30. The input list may be unsorted.',
+      starter: L(['function latencyPercentile(latencies, p) {', '  ', '}']),
+      hint: 'Copy and sort: latencies.slice().sort(function (a, b) { return a - b; }). Then index = Math.ceil(p * n / 100) - 1 (use Math.max(0, index) so it never goes below 0).',
+      sol: L(['function latencyPercentile(latencies, p) {', '  var s = latencies.slice().sort(function (a, b) { return a - b; });', '  var idx = Math.ceil(p * s.length / 100) - 1;', '  return s[Math.max(0, idx)];', '}']),
+      tests: [{ a: '[[10,20,30,40,50],50]', e: '30' }, { a: '[[10,20,30,40,50],95]', e: '50' }, { a: '[[50,10,40,20,30],20]', e: '10' }, { a: '[[7],99]', e: '7', h: 1 }] },
+    { id: 'cost', l: 15, name: 'costPerMillion', title: 'Cost per million tokens',
+      desc: 'A GPU rents for a fixed price per hour, so cost per token falls when throughput rises. Write costPerMillion(tokensPerSec, gpuPerHour): dollars to produce one million tokens = gpuPerHour / (tokensPerSec * 3600) * 1,000,000. (3600 = seconds in an hour.)',
+      starter: L(['function costPerMillion(tokensPerSec, gpuPerHour) {', '  ', '}']),
+      hint: 'First tokens per hour = tokensPerSec * 3600. Dollars per token = gpuPerHour / that. Times 1e6.',
+      sol: L(['function costPerMillion(tokensPerSec, gpuPerHour) {', '  return gpuPerHour / (tokensPerSec * 3600) * 1e6;', '}']),
+      tests: [{ a: '[1000,3.6]', e: '1' }, { a: '[500,3.6]', e: '2' }, { a: '[2000,7.2]', e: '1', h: 1 }] },
+    { id: 'kv', l: 15, name: 'kvCacheBytes', title: 'How big is the KV cache?',
+      desc: 'While generating, a language model keeps the attention Keys and Values of every earlier token. Write kvCacheBytes(layers, heads, headDim, seqLen, bytesPerValue): 2 (one for keys, one for values) * layers * heads * headDim * seqLen * bytesPerValue. Example (2,4,8,10,2) gives 2560.',
+      starter: L(['function kvCacheBytes(layers, heads, headDim, seqLen, bytesPerValue) {', '  ', '}']),
+      hint: 'Multiply all five numbers, then multiply by 2.',
+      sol: L(['function kvCacheBytes(layers, heads, headDim, seqLen, bytesPerValue) {', '  return 2 * layers * heads * headDim * seqLen * bytesPerValue;', '}']),
+      tests: [{ a: '[2,4,8,10,2]', e: '2560' }, { a: '[1,1,1,1,1]', e: '2' }, { a: '[32,32,128,2048,2]', e: '1073741824', h: 1 }] },
+    { id: 'pad', l: 15, name: 'padWaste', title: 'Padding waste',
+      desc: 'In a batch every sequence is padded up to the longest one, and the padding is wasted compute. Write padWaste(lengths): the fraction of the padded batch that is padding = (max * n - sum of lengths) / (max * n). An empty list gives 0. Example [1,3] gives 1/3.',
+      starter: L(['function padWaste(lengths) {', '  ', '}']),
+      hint: 'n = lengths.length, mx = the largest length, total = their sum. Handle n === 0 first.',
+      sol: L(['function padWaste(lengths) {', '  var n = lengths.length;', '  if (n === 0) { return 0; }', '  var mx = Math.max.apply(null, lengths), total = 0;', '  for (var i = 0; i < n; i++) { total += lengths[i]; }', '  return (mx * n - total) / (mx * n);', '}']),
+      tests: [{ a: '[[1,3]]', e: '1/3' }, { a: '[[5,5,5]]', e: '0' }, { a: '[[2,4,6]]', e: '1/3' }, { a: '[[]]', e: '0', h: 1 }] },
+
+    /* ---------------- Level 16: Production evaluation and design ---------------- */
+    { id: 'ztest', l: 16, name: 'zTestTwoProp', title: 'Did the A/B test win?',
+      desc: 'An A/B test counts successes (say, clicks) out of visitors for A and for B. Write zTestTwoProp(sa, na, sb, nb). pa = sa/na, pb = sb/nb, pooled p = (sa + sb) / (na + nb), spread se = sqrt(p * (1 - p) * (1/na + 1/nb)). Return z = (pb - pa) / se, or 0 if se is 0. About |z| > 1.96 is "significant" at 5%.',
+      starter: L(['function zTestTwoProp(sa, na, sb, nb) {', '  ', '}']),
+      hint: 'Compute pa, pb, the pooled p, then se with Math.sqrt. Guard se === 0 before dividing.',
+      sol: L(['function zTestTwoProp(sa, na, sb, nb) {', '  var pa = sa / na, pb = sb / nb;', '  var p = (sa + sb) / (na + nb);', '  var se = Math.sqrt(p * (1 - p) * (1 / na + 1 / nb));', '  if (se === 0) { return 0; }', '  return (pb - pa) / se;', '}']),
+      tests: [{ a: '[100,1000,120,1000]', e: '(0.12 - 0.1) / Math.sqrt(0.11 * 0.89 * (1 / 1000 + 1 / 1000))' }, { a: '[50,100,50,100]', e: '0' }, { a: '[0,10,0,10]', e: '0', h: 1 }] },
+    { id: 'psi', l: 16, name: 'populationStability', title: 'Population stability index',
+      desc: 'To spot drift, compare how data falls into bins now versus a reference. Write populationStability(expected, actual): both are lists of fractions (each adds up to 1, all above 0). Return the sum over bins of (actual - expected) * ln(actual / expected). Near 0 means no drift; above about 0.25 is a big shift.',
+      starter: L(['function populationStability(expected, actual) {', '  ', '}']),
+      hint: 'Loop the bins; add (actual[i] - expected[i]) * Math.log(actual[i] / expected[i]) to a total.',
+      sol: L(['function populationStability(expected, actual) {', '  var s = 0;', '  for (var i = 0; i < expected.length; i++) {', '    s += (actual[i] - expected[i]) * Math.log(actual[i] / expected[i]);', '  }', '  return s;', '}']),
+      tests: [{ a: '[[0.5,0.5],[0.5,0.5]]', e: '0' }, { a: '[[0.5,0.5],[0.7,0.3]]', e: '0.2 * Math.log(1.4) + (-0.2) * Math.log(0.6)' }, { a: '[[0.25,0.25,0.25,0.25],[0.25,0.25,0.25,0.25]]', e: '0', h: 1 }] },
+    { id: 'canary', l: 16, name: 'canaryDecision', title: 'Canary: promote or roll back?',
+      desc: 'A new model gets a small slice of traffic first. Write canaryDecision(baselineErr, canaryErr, requests, minRequests). If requests < minRequests return "wait" (not enough evidence). Otherwise if canaryErr is more than 1.2 times baselineErr return "rollback", else "promote".',
+      starter: L(['function canaryDecision(baselineErr, canaryErr, requests, minRequests) {', '  ', '}']),
+      hint: 'Check requests < minRequests first and return "wait". Then compare canaryErr > baselineErr * 1.2.',
+      sol: L(['function canaryDecision(baselineErr, canaryErr, requests, minRequests) {', '  if (requests < minRequests) { return "wait"; }', '  if (canaryErr > baselineErr * 1.2) { return "rollback"; }', '  return "promote";', '}']),
+      tests: [{ a: '[0.01,0.05,100,1000]', e: '"wait"' }, { a: '[0.01,0.05,2000,1000]', e: '"rollback"' }, { a: '[0.01,0.011,2000,1000]', e: '"promote"' }, { a: '[0.01,0.0121,1000,1000]', e: '"rollback"', h: 1 }] },
+    { id: 'budget', l: 16, name: 'errorBudgetLeft', title: 'How much error budget is left?',
+      desc: 'A reliability goal (SLO) like 99% success allows some failures. Write errorBudgetLeft(slo, total, failed): allowed failures = total * (1 - slo). Return (allowed - failed) / allowed, the fraction of the budget left (negative = overspent). If allowed is 0 or less return 0.',
+      starter: L(['function errorBudgetLeft(slo, total, failed) {', '  ', '}']),
+      hint: 'allowed = total * (1 - slo); guard allowed <= 0; then (allowed - failed) / allowed.',
+      sol: L(['function errorBudgetLeft(slo, total, failed) {', '  var allowed = total * (1 - slo);', '  if (allowed <= 0) { return 0; }', '  return (allowed - failed) / allowed;', '}']),
+      tests: [{ a: '[0.99,10000,40]', e: '0.6' }, { a: '[0.999,1000000,500]', e: '0.5' }, { a: '[0.99,100,5]', e: '-4' }, { a: '[1,100,0]', e: '0', h: 1 }] }
   ];
 
   root.MLCODE = { EX: EX, runTests: runTests };
@@ -912,6 +1064,111 @@ button.lock{opacity:.45}
   "starter": "import math\n\ndef train_logistic(xs, ys, lr, epochs):\n    w = 0\n    b = 0\n    # your loops here\n    return [w, b]\n",
   "sol": "import math\n\ndef train_logistic(xs, ys, lr, epochs):\n    w = 0\n    b = 0\n    n = len(xs)\n    for e in range(epochs):\n        dw = 0\n        db = 0\n        for i in range(n):\n            p = 1 / (1 + math.exp(-(w * xs[i] + b)))\n            dw += (p - ys[i]) * xs[i]\n            db += (p - ys[i])\n        w -= lr * dw / n\n        b -= lr * db / n\n    return [w, b]\n",
   "hint": "Outer loop over epochs. Inside, loop over the data accumulating dw and db, divide by n, THEN update w and b (once per epoch)."
+ },
+ "eff": {
+  "name": "effective_batch",
+  "starter": "def effective_batch(per_gpu, gpus, accum_steps):\n    pass\n",
+  "sol": "def effective_batch(per_gpu, gpus, accum_steps):\n    return per_gpu * gpus * accum_steps\n",
+  "hint": "Multiply the three numbers together."
+ },
+ "lrscale": {
+  "name": "scale_lr",
+  "starter": "def scale_lr(base_lr, base_batch, new_batch):\n    pass\n",
+  "sol": "def scale_lr(base_lr, base_batch, new_batch):\n    return base_lr * new_batch / base_batch\n",
+  "hint": "return base_lr * new_batch / base_batch"
+ },
+ "shard": {
+  "name": "shard_indices",
+  "starter": "def shard_indices(n, rank, world):\n    pass\n",
+  "sol": "def shard_indices(n, rank, world):\n    out = []\n    for i in range(n):\n        if i % world == rank:\n            out.append(i)\n    return out\n",
+  "hint": "Loop i in range(n); when i % world == rank, append i to the answer list.",
+  "desc": "In data-parallel training each worker (rank) reads only its share of the examples. Write shard_indices(n, rank, world): the positions i from 0 to n-1 where i % world equals rank. (% gives the remainder after dividing: 7 % 4 is 3.) Example: n=10, rank=1, world=4 gives [1,5,9]."
+ },
+ "allred": {
+  "name": "all_reduce_mean",
+  "starter": "def all_reduce_mean(workers):\n    pass\n",
+  "sol": "def all_reduce_mean(workers):\n    out = []\n    for j in range(len(workers[0])):\n        s = 0\n        for i in range(len(workers)):\n            s += workers[i][j]\n        out.append(s / len(workers))\n    return out\n",
+  "hint": "For each position j, add workers[i][j] over every worker i, then divide by the number of workers."
+ },
+ "resume": {
+  "name": "resume_point",
+  "starter": "def resume_point(checkpoint_steps, crash_step):\n    pass\n",
+  "sol": "def resume_point(checkpoint_steps, crash_step):\n    best = 0\n    for s in checkpoint_steps:\n        if s <= crash_step and s > best:\n            best = s\n    return [best, crash_step - best]\n",
+  "hint": "best = 0. Loop the checkpoints: if one is <= crash_step and bigger than best, best = it. Return [best, crash_step - best]."
+ },
+ "validate": {
+  "name": "invalid_rows",
+  "starter": "def invalid_rows(rows, schema):\n    pass\n",
+  "sol": "def invalid_rows(rows, schema):\n    out = []\n    for i in range(len(rows)):\n        bad = False\n        for f in schema:\n            v = rows[i].get(f)\n            if v is None:\n                bad = True\n            elif schema[f] == \"number\":\n                if isinstance(v, bool) or not isinstance(v, (int, float)):\n                    bad = True\n            elif not isinstance(v, str):\n                bad = True\n        if bad:\n            out.append(i)\n    return out\n",
+  "hint": "For each row, loop over the schema fields (for f in schema). v = rows[i].get(f) is None when missing. A \"number\" must be int or float (not bool); a \"string\" must be str.",
+  "desc": "Bad rows break training silently. Write invalid_rows(rows, schema). rows is a list of dictionaries (records); schema maps a field name to the type it must have: \"number\" or \"string\". Return the positions of rows where any field is missing, None, or the wrong type. Example schema {\"age\": \"number\", \"name\": \"string\"}."
+ },
+ "dedupe": {
+  "name": "dedupe",
+  "starter": "def dedupe(ids):\n    pass\n",
+  "sol": "def dedupe(ids):\n    seen = []\n    for x in ids:\n        if x not in seen:\n            seen.append(x)\n    return seen\n",
+  "hint": "Build a list seen. For each item, if it is `not in seen`, append it."
+ },
+ "hashsplit": {
+  "name": "hash_split",
+  "starter": "def hash_split(item_id, test_percent):\n    h = 0\n    # your loop here\n    pass\n",
+  "sol": "def hash_split(item_id, test_percent):\n    h = 0\n    for ch in item_id:\n        h = (h * 31 + ord(ch)) % 1000003\n    bucket = h % 100\n    return \"test\" if bucket < test_percent else \"train\"\n",
+  "hint": "for ch in item_id: h = (h * 31 + ord(ch)) % 1000003. Then bucket = h % 100.",
+  "desc": "If you shuffle randomly each run, an example can be in the test set today and the training set tomorrow (a leak). Instead decide from the ID itself. Write hash_split(item_id, test_percent). Start h = 0. For each character of the text: h = (h * 31 + the character code) % 1000003. (Character code: ord(ch).) Then bucket = h % 100. Return \"test\" if bucket < test_percent, else \"train\"."
+ },
+ "kappa": {
+  "name": "cohen_kappa",
+  "starter": "def cohen_kappa(a, b):\n    pass\n",
+  "sol": "def cohen_kappa(a, b):\n    n = len(a)\n    agree = 0\n    a1 = 0\n    b1 = 0\n    for i in range(n):\n        if a[i] == b[i]:\n            agree += 1\n        if a[i] == 1:\n            a1 += 1\n        if b[i] == 1:\n            b1 += 1\n    po = agree / n\n    pe = (a1 / n) * (b1 / n) + ((n - a1) / n) * ((n - b1) / n)\n    if pe == 1:\n        return 1\n    return (po - pe) / (1 - pe)\n",
+  "hint": "Count agree, ones in a, ones in b. n = len(a). Then po = agree / n and pe from the fractions."
+ },
+ "pctl": {
+  "name": "latency_percentile",
+  "starter": "import math\n\ndef latency_percentile(latencies, p):\n    pass\n",
+  "sol": "import math\n\ndef latency_percentile(latencies, p):\n    s = sorted(latencies)\n    idx = math.ceil(p * len(s) / 100) - 1\n    return s[max(0, idx)]\n",
+  "hint": "s = sorted(latencies) (a sorted copy). index = math.ceil(p * len(s) / 100) - 1, and use max(0, index) so it never goes below 0."
+ },
+ "cost": {
+  "name": "cost_per_million",
+  "starter": "def cost_per_million(tokens_per_sec, gpu_per_hour):\n    pass\n",
+  "sol": "def cost_per_million(tokens_per_sec, gpu_per_hour):\n    return gpu_per_hour / (tokens_per_sec * 3600) * 1e6\n",
+  "hint": "First tokens per hour = tokens_per_sec * 3600. Dollars per token = gpu_per_hour / that. Times 1e6."
+ },
+ "kv": {
+  "name": "kv_cache_bytes",
+  "starter": "def kv_cache_bytes(layers, heads, head_dim, seq_len, bytes_per_value):\n    pass\n",
+  "sol": "def kv_cache_bytes(layers, heads, head_dim, seq_len, bytes_per_value):\n    return 2 * layers * heads * head_dim * seq_len * bytes_per_value\n",
+  "hint": "Multiply all five numbers, then multiply by 2."
+ },
+ "pad": {
+  "name": "pad_waste",
+  "starter": "def pad_waste(lengths):\n    pass\n",
+  "sol": "def pad_waste(lengths):\n    n = len(lengths)\n    if n == 0:\n        return 0\n    mx = max(lengths)\n    total = sum(lengths)\n    return (mx * n - total) / (mx * n)\n",
+  "hint": "n = len(lengths), mx = the largest length, total = their sum. Handle n == 0 first."
+ },
+ "ztest": {
+  "name": "z_test_two_prop",
+  "starter": "import math\n\ndef z_test_two_prop(sa, na, sb, nb):\n    pass\n",
+  "sol": "import math\n\ndef z_test_two_prop(sa, na, sb, nb):\n    pa = sa / na\n    pb = sb / nb\n    p = (sa + sb) / (na + nb)\n    se = math.sqrt(p * (1 - p) * (1 / na + 1 / nb))\n    if se == 0:\n        return 0\n    return (pb - pa) / se\n",
+  "hint": "Compute pa, pb, the pooled p, then se with math.sqrt. Guard se == 0 before dividing."
+ },
+ "psi": {
+  "name": "population_stability",
+  "starter": "import math\n\ndef population_stability(expected, actual):\n    pass\n",
+  "sol": "import math\n\ndef population_stability(expected, actual):\n    s = 0\n    for i in range(len(expected)):\n        s += (actual[i] - expected[i]) * math.log(actual[i] / expected[i])\n    return s\n",
+  "hint": "Loop the bins; add (actual[i] - expected[i]) * math.log(actual[i] / expected[i]) to a total."
+ },
+ "canary": {
+  "name": "canary_decision",
+  "starter": "def canary_decision(baseline_err, canary_err, requests, min_requests):\n    pass\n",
+  "sol": "def canary_decision(baseline_err, canary_err, requests, min_requests):\n    if requests < min_requests:\n        return \"wait\"\n    if canary_err > baseline_err * 1.2:\n        return \"rollback\"\n    return \"promote\"\n",
+  "hint": "Check requests < min_requests first and return \"wait\". Then compare canary_err > baseline_err * 1.2."
+ },
+ "budget": {
+  "name": "error_budget_left",
+  "starter": "def error_budget_left(slo, total, failed):\n    pass\n",
+  "sol": "def error_budget_left(slo, total, failed):\n    allowed = total * (1 - slo)\n    if allowed <= 0:\n        return 0\n    return (allowed - failed) / allowed\n",
+  "hint": "allowed = total * (1 - slo); guard allowed <= 0; then (allowed - failed) / allowed."
  }
 }; })(typeof window !== 'undefined' ? window : this);
 
@@ -923,6 +1180,11 @@ button.lock{opacity:.45}
 (function (root) {
   'use strict';
   var GLOSS = [
+    [/%/, '%', 'a % b is the REMAINDER after dividing a by b: 7 % 4 is 3, 8 % 4 is 0. It cycles through 0..b-1, which makes it great for sharding, wrap-around and hashing.'],
+    [/Math\.ceil/, 'Math.ceil', 'Math.ceil(x) rounds UP to a whole number: Math.ceil(2.1) is 3.'],
+    [/typeof/, 'typeof', 'typeof v tells what kind of thing v is, as text: "number", "string", "boolean", ...'],
+    [/charCodeAt/, 'charCodeAt', 'text.charCodeAt(i) is the number code of the character at position i of the text (for example "a" is 97).'],
+    [/\.sort\(function/, 'compare function', 'The little function you give to sort receives two items a and b. Returning a - b sorts numbers from smallest to biggest.'],
     [/\bfunction\b/, 'function', 'function name(a, b) { ... } defines a reusable recipe called name. The names in the round brackets are its inputs ("parameters"): whatever you hand in when you call it. Everything between { and } is the recipe.'],
     [/\breturn\b/, 'return', 'return X; ends the function and hands X back as the answer. Nothing after a return runs.'],
     [/\bvar\b/, 'var', 'var s = 0; creates a labelled box named s and puts 0 in it. You can change what is inside later. var i, k; makes empty boxes.'],
@@ -1007,10 +1269,32 @@ button.lock{opacity:.45}
     calib: { v: [['confs', 'the model\'s confidence per prediction'], ['correct', '1 if right else 0'], ['c', 'total confidence'], ['k', 'total correct'], ['n', 'number of predictions']], w: ['c / n is the average confidence; k / n is the real accuracy (since correct is 0/1).', 'Math.abs of their difference is the gap. 0 means the model\'s confidence, on average, matches how often it is right.'] },
     shift: { v: [['train', 'training values'], ['prod', 'values seen in production'], ['mt, mp', 'mean of training and of production'], ['v', 'sum of squared distances in training'], ['sd', 'standard deviation of training']], w: ['mean is a small helper that adds and divides.', 'sd is the spread of the training data (divide by n, population version).', 'If sd is 0 the training data never varied: 0 shift if means equal, otherwise Infinity.', 'Otherwise the shift is how many training-spreads the production mean moved. Big values mean the data has drifted.'] },
     slice: { v: [['preds, labels', 'predictions and truth'], ['groups', 'the group name of each example'], ['total', 'object: how many examples per group'], ['right', 'object: how many correct per group'], ['g', 'the group of the current example'], ['k', 'a group name in the final loop']], w: ['total[g] = (total[g] || 0) + 1: if the group has no count yet (undefined, which counts as false) start from 0, then add 1.', 'right[g] does the same, adding 1 only when the prediction matched.', 'Final loop: for each group name k, accuracy = right[k] / total[k].', 'An overall average can hide a group at 0; this exposes it.'] },
-    logit: { v: [['xs, ys', 'inputs and 0/1 labels'], ['w, b', 'weight and bias being learned; both start at 0'], ['e', 'epoch counter'], ['p', 'predicted probability = 1 / (1 + exp(-(w*x + b)))'], ['dw, db', 'sums for the gradients of w and b'], ['n', 'number of examples']], w: ['Each epoch zero the gradient sums dw and db.', 'For every example compute p (the sigmoid squashes any number into 0..1).', '(p - ys[i]) is the error; times xs[i] gives the push on w; alone it gives the push on b.', 'After going through all examples, divide by n for the average and update: w -= lr * dw / n, b -= lr * db / n.', 'Repeat for epochs rounds. The line w*x + b slowly rotates until it separates the 0s from the 1s.'] }
+    logit: { v: [['xs, ys', 'inputs and 0/1 labels'], ['w, b', 'weight and bias being learned; both start at 0'], ['e', 'epoch counter'], ['p', 'predicted probability = 1 / (1 + exp(-(w*x + b)))'], ['dw, db', 'sums for the gradients of w and b'], ['n', 'number of examples']], w: ['Each epoch zero the gradient sums dw and db.', 'For every example compute p (the sigmoid squashes any number into 0..1).', '(p - ys[i]) is the error; times xs[i] gives the push on w; alone it gives the push on b.', 'After going through all examples, divide by n for the average and update: w -= lr * dw / n, b -= lr * db / n.', 'Repeat for epochs rounds. The line w*x + b slowly rotates until it separates the 0s from the 1s.'] },
+    eff: { v: [['perGpu', 'examples each GPU handles per step'], ['gpus', 'how many GPUs work together'], ['accumSteps', 'how many small steps are accumulated before one weight update']], w: ['One update uses the examples from every GPU and every accumulated step.', 'So multiply the three numbers: perGpu * gpus * accumSteps.', 'Example: 8 per GPU, 4 GPUs, 2 accumulation steps gives 64 examples behind each update. This number (not just the per-GPU size) is what the learning rate has to be tuned for.'] },
+    lrscale: { v: [['baseLr', 'the learning rate that worked for the old batch size'], ['baseBatch', 'the old batch size'], ['newBatch', 'the new batch size']], w: ['newBatch / baseBatch says how many times bigger the batch became.', 'Multiply the learning rate by that factor: twice the batch, twice the learning rate.', 'This is a rule of thumb, not a law. Big batches also need a warm-up (start small, ramp up) and the rule breaks down at very large batch sizes.'] },
+    shard: { v: [['n', 'how many examples there are in total'], ['rank', 'this worker\'s number (0, 1, 2, ...)'], ['world', 'how many workers there are'], ['i % world', 'the remainder when i is divided by world: it cycles 0, 1, ..., world-1, 0, 1, ...'], ['out', 'the list of positions this worker will read']], w: ['Go through every example position i from 0 to n-1.', 'Keep position i only when i % world equals this worker\'s rank. Worker 1 of 4 keeps 1, 5, 9, ...', 'Every example is read by exactly one worker and nobody overlaps, so no example is trained on twice per epoch.'] },
+    allred: { v: [['workers', 'a list with one gradient list per GPU'], ['j', 'which number inside the gradient list'], ['i', 'which worker'], ['s', 'running total for position j'], ['out', 'the averaged gradient']], w: ['For each position j in the gradient, add the value from every worker i.', 'Divide by the number of workers to get the average.', 'In real training this average is computed over the network by the all-reduce operation, and afterwards every GPU holds the identical list, so all model copies take the same step.'] },
+    resume: { v: [['checkpointSteps', 'the steps at which a checkpoint was saved'], ['crashStep', 'the step where the run crashed'], ['best', 'the latest checkpoint step that is not after the crash; 0 means "none yet"'], ['s', 'one checkpoint step in the loop']], w: ['Start best at 0 (no checkpoint: restart from scratch).', 'For each saved checkpoint s: if it happened at or before the crash (s <= crashStep) and is later than the best so far, remember it.', 'Return the step to resume from and how many steps of work were lost: crashStep - best.', 'A checkpoint after the crash can\'t exist, so it is ignored.'] },
+    validate: { v: [['rows', 'a list of records (objects with named fields)'], ['schema', 'for each field, the type it must have: "number" or "string"'], ['f', 'one field name'], ['v', 'the value of that field in the current row'], ['bad', 'True once any field of this row is wrong'], ['out', 'the positions of the bad rows']], w: ['For each row, start by assuming it is fine (bad = false).', 'Check every field named in the schema. A missing or null value is bad. A value whose type differs from the required type is bad.', 'If the row was marked bad, record its position.', 'Return all the bad positions so you can look at those rows before training.'] , vpy: [['rows', 'a list of records (dictionaries with named fields)'], ['schema', 'for each field, the type it must have: "number" or "string"'], ['f', 'one field name'], ['v', 'rows[i].get(f): the value of that field, or None if the field is missing'], ['bad', 'True once any field of this row is wrong'], ['out', 'the positions of the bad rows']], wpy: ['For each row, start by assuming it is fine (bad = False).', 'Check every field named in the schema (for f in schema). row.get(f) gives None when the field is missing, and a missing value is bad.', 'A "number" must be an int or float (isinstance checks the type; True and False are excluded). A "string" must be a str.', 'If the row was marked bad, append its position to out.', 'Return all the bad positions so you can look at those rows before training.']},
+    dedupe: { v: [['ids', 'the list that may contain repeats'], ['seen', 'the items we have already kept, in order']], w: ['Go through the items in their original order.', 'Keep an item only if it is not already in seen (indexOf gives -1 when absent).', 'The first appearance is kept and later copies are skipped, so the order is preserved.'] , vpy: [['ids', 'the list that may contain repeats'], ['seen', 'the items we have already kept, in order'], ['x', 'one item from ids']], wpy: ['Go through the items in their original order (for x in ids).', 'Keep an item only if it is not already in seen (x not in seen).', 'The first appearance is kept and later copies are skipped, so the order is preserved.']},
+    hashsplit: { v: [['itemId', 'the example\'s ID text'], ['testPercent', 'what percent of examples should go to the test set'], ['h', 'a number built up from the characters (a "hash")'], ['charCodeAt', 'gives the number code of one character'], ['bucket', 'h % 100: a number from 0 to 99'], ['"test" / "train"', 'the answers, as text']], w: ['Walk through the ID one character at a time.', 'h = (h * 31 + code) % 1000003 mixes each character into h. The % keeps the number from growing without limit.', 'bucket = h % 100 turns the hash into a number 0 to 99. The same ID always gives the same bucket.', 'If the bucket is below testPercent the example is test data. So a 20% test set is buckets 0 to 19, and the choice never changes between runs.'] , vpy: [['item_id', 'the example\'s ID text'], ['test_percent', 'what percent of examples should go to the test set'], ['h', 'a number built up from the characters (a "hash")'], ['ch', 'one character of the ID, taken in turn'], ['ord(ch)', 'the number code of that character'], ['bucket', 'h % 100: a number from 0 to 99'], ['"test" / "train"', 'the answers, as text']], wpy: ['Walk through the ID one character at a time (for ch in item_id).', 'h = (h * 31 + ord(ch)) % 1000003 mixes each character into h. The % keeps the number from growing without limit.', 'bucket = h % 100 turns the hash into a number 0 to 99. The same ID always gives the same bucket.', 'If the bucket is below test_percent the example is test data. So a 20% test set is buckets 0 to 19, and the choice never changes between runs.']},
+    kappa: { v: [['a, b', 'the two labelers\' 0/1 labels for the same items'], ['n', 'how many items'], ['agree', 'how many items they labelled the same'], ['a1, b1', 'how many 1s each labeler gave'], ['po', 'the observed agreement (a fraction)'], ['pe', 'the agreement you would expect by pure chance']], w: ['Count agreements and each person\'s 1s in one pass.', 'po = agree / n is the raw agreement.', 'pe: chance both say 1 is (a1/n)*(b1/n); chance both say 0 is ((n-a1)/n)*((n-b1)/n). Add them.', 'Kappa = (po - pe) / (1 - pe): 1 means perfect agreement, 0 means no better than chance, below 0 is worse than chance.', 'If pe is 1 (both always give the same label) the formula would divide by zero, so return 1.'] },
+    pctl: { v: [['latencies', 'request times in milliseconds'], ['p', 'the percentile you want, e.g. 95'], ['s', 'a sorted copy of the times, smallest first'], ['idx', 'the position of the wanted item in s']], w: ['Sort a copy small to big (the original list is left alone).', 'Nearest-rank: rank = ceil(p * n / 100), the ceiling means "round up". Counting starts at 1 for the first item, but lists start at 0, so subtract 1 to get the position.', 'max(0, idx) stops the position from going below 0 for tiny percentiles.', 'Example: 5 times, p = 95 gives rank 5, the largest value: 95% of requests were at least this fast.'] },
+    cost: { v: [['tokensPerSec', 'how many tokens the system produces per second'], ['gpuPerHour', 'the price of the GPU per hour in dollars'], ['tokensPerSec * 3600', 'tokens produced per hour (3600 seconds in an hour)'], ['1e6', 'one million']], w: ['In one hour the GPU produces tokensPerSec * 3600 tokens and costs gpuPerHour dollars.', 'gpuPerHour divided by tokens per hour is dollars per single token.', 'Multiply by one million for the price per million tokens.', 'Doubling throughput halves the cost: this is why keeping the GPU busy (batching) matters more than almost anything else.'] },
+    kv: { v: [['layers', 'how many transformer layers'], ['heads', 'attention heads per layer'], ['headDim', 'numbers per head'], ['seqLen', 'how many tokens are being kept'], ['bytesPerValue', 'bytes per stored number (2 for half precision)'], ['2', 'one copy for Keys and one for Values']], w: ['Each token stores a Key and a Value (the 2) for every layer and every head.', 'Each of those is headDim numbers, each taking bytesPerValue bytes.', 'Multiply everything: it grows linearly with sequence length and with the number of users served at once.', 'Example: 32 layers, 32 heads, 128 dims, 2048 tokens, 2 bytes gives 1,073,741,824 bytes = 1 GiB for just one conversation.'] },
+    pad: { v: [['lengths', 'the length of each sequence in the batch'], ['n', 'how many sequences'], ['mx', 'the longest length'], ['total', 'the sum of all real lengths'], ['mx * n', 'the size of the padded batch']], w: ['Every sequence is stretched to the longest length mx, so the padded batch holds mx * n slots.', 'Only total of those slots contain real tokens; the rest is padding.', '(mx * n - total) / (mx * n) is the wasted fraction. An empty batch returns 0 to avoid dividing by zero.', 'Bucketing sequences by similar length shrinks this number.'] },
+    ztest: { v: [['sa, na', 'successes and visitors in group A'], ['sb, nb', 'successes and visitors in group B'], ['pa, pb', 'the success rates of A and B'], ['p', 'the pooled success rate of both groups together'], ['se', 'standard error: how much pa - pb would wobble by chance'], ['z', 'the difference measured in units of that wobble']], w: ['pa and pb are the two rates. The pooled rate p assumes there is NO real difference and merges both groups.', 'se = sqrt(p * (1 - p) * (1/na + 1/nb)) says how large a difference you would expect from luck alone.', 'z = (pb - pa) / se: how many "luck units" the observed difference is. Beyond about 1.96 (either direction) is conventionally called significant at 5%.', 'If se is 0 (nothing ever succeeds or always succeeds) there is nothing to test: return 0.'] },
+    psi: { v: [['expected', 'the share of data in each bin in the reference (training) data'], ['actual', 'the share in each bin now'], ['s', 'the running total of the index'], ['ln', 'the natural logarithm, Math.log']], w: ['For each bin compare now to then: (actual - expected) is the change in share.', 'Math.log(actual / expected) is positive when the bin grew and negative when it shrank, so the two factors always agree in sign and each term is zero or positive.', 'Add up all the bins. 0 means identical; above about 0.25 means the data has changed a lot and the model may no longer fit it.'] },
+    canary: { v: [['baselineErr', 'error rate of the current model'], ['canaryErr', 'error rate of the new model on the small slice of traffic'], ['requests', 'how many requests the canary has served so far'], ['minRequests', 'how many it needs before we trust the numbers'], ['1.2', 'we allow the canary to be up to 20% worse before giving up']], w: ['Too few requests means the error rate is just noise: answer "wait".', 'With enough evidence, compare: canaryErr more than 1.2 times baselineErr is clearly worse, so "rollback".', 'Otherwise it is good enough: "promote" to more traffic.', 'The order matters: waiting is checked first so a lucky or unlucky tiny sample never triggers a decision.'] },
+    budget: { v: [['slo', 'the success goal, e.g. 0.99 for 99%'], ['total', 'how many requests there were'], ['failed', 'how many failed'], ['allowed', 'how many failures the goal tolerates = total * (1 - slo)']], w: ['A 99% goal over 10,000 requests tolerates 1% failures: 100 of them.', '(allowed - failed) / allowed is the fraction of that allowance still unused. 0.6 means 60% of the budget is left.', 'Negative means the budget is overspent, so freeze risky releases and fix reliability.', 'If allowed is 0 there is no budget at all: return 0 instead of dividing by zero.'] }
   };
 
   var GLOSS_PY = [
+    [/%/, '%', 'a % b is the REMAINDER after dividing a by b: 7 % 4 is 3, 8 % 4 is 0. It cycles through 0..b-1, which makes it great for sharding, wrap-around and hashing.'],
+    [/math\.ceil/, 'math.ceil', 'math.ceil(x) rounds UP to a whole number: math.ceil(2.1) is 3.'],
+    [/isinstance/, 'isinstance', 'isinstance(v, str) asks "is v a string?"; (int, float) means "an int or a float". It checks the kind of thing a value is.'],
+    [/\bord\(/, 'ord', 'ord(ch) gives the number code of one character (ord("a") is 97).'],
+    [/ not in /, 'not in', 'x not in xs asks "is x absent from the list xs?".'],
     [/\bdef\b/, 'def', 'def name(a, b): defines a reusable recipe called name. The names in the round brackets are its inputs ("parameters"). The colon and the indented lines below it are the recipe. In Python the INDENTATION (4 spaces) is what marks what belongs inside.'],
     [/\breturn\b/, 'return', 'return X ends the function and hands X back as the answer. Nothing after a return runs.'],
     [/^\s*\w+ = /m, 'name = value', 's = 0 creates a labelled box named s and puts 0 in it (no keyword needed in Python). You can put a new value in the same box later.'],
@@ -1060,7 +1344,8 @@ button.lock{opacity:.45}
   /* turn the JavaScript phrasing in a shared step into Python phrasing (used when no Python-specific text exists) */
   function pyify(s) {
     return String(s).replace(/(\w+)\.slice\(0, (\w+)\)/g, '$1[:$2]').replace(/(\w+)\.slice\((\w+)\)/g, '$1[$2:]').replace(/\b(\w+)\.length\b/g, 'len($1)').replace(/\b(\w+)\+\+/g, '$1 += 1')
-      .replace(/Math\.(max|min|abs|round)\b/g, '$1').replace(/Math\.floor/g, 'int').replace(/Math\.(sqrt|exp|log)/g, 'math.$1')
+      .replace(/Math\.(max|min|abs|round)\b/g, '$1').replace(/Math\.floor/g, 'int').replace(/Math\.(sqrt|exp|log|ceil)/g, 'math.$1')
+      .replace(/\b[a-z]+[A-Z][A-Za-z0-9]*\b/g, function (m) { return m.replace(/[A-Z]/g, function (c) { return '_' + c.toLowerCase(); }); })
       .replace(/===/g, '==').replace(/!==/g, '!=').replace(/\bnull\b/g, 'None').replace(/\bInfinity\b/g, 'math.inf');
   }
   root.MLEXPL = { GLOSS: GLOSS, GLOSS_PY: GLOSS_PY, EXPL: EXPL, glossFor: glossFor, pyify: pyify };
@@ -1071,7 +1356,7 @@ button.lock{opacity:.45}
 <script>
 (function(){
 'use strict';
-var L=window.MLLADDER.LEVELS, BANK=window.MLLADDER.BANK, PER=8, KEY='mlladder.v1';
+var L=window.MLLADDER.LEVELS, NLEV=L.length, BANK=window.MLLADDER.BANK, PER=8, KEY='mlladder.v1';
 var app=document.getElementById('app');
 var S={level:1,top:1,box:{},due:[],n:0,stats:{ans:0,right:0,idk:0},done:false};
 var cur=null,answered=false;
@@ -1103,7 +1388,7 @@ function pick(){
 function header(){
   var m=mastered(S.level),pct=Math.round(100*m/PER);
   return '<h1>ML Ladder</h1><div class="sub">Endless questions. "I don\'t know" is always a fine answer.</div>'+
-  '<div class="meta"><span><b>Level '+S.level+' of 12:</b> '+esc(L[S.level-1])+'</span><span>'+m+'/'+PER+' mastered</span></div>'+
+  '<div class="meta"><span><b>Level '+S.level+' of '+NLEV+':</b> '+esc(L[S.level-1])+'</span><span>'+m+'/'+PER+' mastered</span></div>'+
   '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
   '<div class="meta"><span>Answered '+S.stats.ans+' &middot; correct '+S.stats.right+' &middot; unsure '+S.stats.idk+'</span>'+
   '<span class="lnk" id="menu">levels</span></div>'+tabsHtml();
@@ -1126,14 +1411,14 @@ function exById(id){for(var i=0;i<EX.length;i++)if(EX[i].id===id)return EX[i];re
 function nextEx(){for(var i=0;i<EX.length;i++)if(!exSolved(EX[i].id)&&unlocked(EX[i].l))return EX[i];return null;}
 
 function codeHeader(){
-  return '<h1>ML Ladder</h1><div class="sub">Type real code. Easy first, then harder, same 12 levels.</div>'+tabsHtml();
+  return '<h1>ML Ladder</h1><div class="sub">Type real code. Easy first, then harder, same levels as the quiz.</div>'+tabsHtml();
 }
 function renderCode(){
   if(S.view&&S.view!=='list'){var e=exById(S.view);if(e)return renderEx(e);}
   var h=codeHeader()+'<div class="card small">JavaScript runs right on your phone, no internet needed. Python runs on your PC (open this page from your Senior Lab address). Tap an exercise, type the function, press Run. Hidden tests check tricky cases. Finishing a level\'s exercises unlocks the next one (or level up in the Quiz).'+langBar()+'</div>';
   var nx=nextEx();
   if(nx)h+='<button class="go" data-ex="'+nx.id+'">Continue: '+esc(nx.title)+'</button>';
-  for(var l=1;l<=12;l++){
+  for(var l=1;l<=NLEV;l++){
     var open=unlocked(l),n=0,d=0;
     h+='<div class="card"><b>Level '+l+': '+esc(L[l-1])+'</b>'+(open?'':' <span class="small">(locked: finish level '+(l-1)+' code or quiz)</span>');
     for(var i=0;i<EX.length;i++){if(EX[i].l!==l)continue;n++;var ok=exSolved(EX[i].id);if(ok)d++;
@@ -1192,7 +1477,8 @@ function askPassword(cb){
 }
 function fixDesc(d,jsName,pyName){
   return d.split(jsName).join(pyName).replace(/trainIds/g,'train_ids').replace(/testIds/g,'test_ids').replace(/trainX/g,'train_x').replace(/trainY/g,'train_y')
-    .replace(/\bnull\b/g,'None').replace(/Math\./g,'');
+    .replace(/\bnull\b/g,'None').replace(/Math\./g,'')
+    .replace(/\b[a-z]+[A-Z][A-Za-z0-9]*\b/g,function(m){return m.replace(/[A-Z]/g,function(c){return '_'+c.toLowerCase();});});
 }
 function view(ex){
   if(S.lang!=='py'||!window.MLPY||!window.MLPY[ex.id])return ex;
@@ -1233,10 +1519,11 @@ function explainHtml(ex){
   var E=window.MLEXPL,x=E&&E.EXPL[ex.id];if(!x)return '';
   var py=!!ex.py,f=function(s){return py?E.pyify(s):s;};
   var h='<details open class="why" style="margin-top:8px"><summary><b>What every name means</b></summary><div style="margin-top:6px">';
-  for(var i=0;i<x.v.length;i++)h+='<div><b>'+esc(f(x.v[i][0]))+'</b> &mdash; '+esc(f(x.v[i][1]))+'</div>';
+  var vv=(py&&x.vpy)?x.vpy:x.v,ff=(py&&x.vpy)?function(s){return s;}:f;
+  for(var i=0;i<vv.length;i++)h+='<div><b>'+esc(ff(vv[i][0]))+'</b> &mdash; '+esc(ff(vv[i][1]))+'</div>';
   h+='</div></details><details open class="why" style="margin-top:8px"><summary><b>What the code does, step by step</b></summary><ol style="margin:6px 0 0 18px;padding:0">';
-  var steps=(py&&ex.wpy)?ex.wpy:x.w;
-  for(var k=0;k<steps.length;k++)h+='<li>'+esc(py&&!ex.wpy?f(steps[k]):steps[k])+'</li>';
+  var own=py&&(ex.wpy||x.wpy),steps=own?(ex.wpy||x.wpy):x.w;
+  for(var k=0;k<steps.length;k++)h+='<li>'+esc(py&&!own?f(steps[k]):steps[k])+'</li>';
   h+='</ol></details>';
   var g=E.glossFor(ex.sol,py);
   if(g.length){h+='<details open class="why" style="margin-top:8px"><summary><b>What the symbols and words mean</b></summary><div style="margin-top:6px">';
@@ -1395,12 +1682,12 @@ function answer(o){
 }
 
 function checkLevelUp(){
-  if(S.level<12&&mastered(S.level)>=PER-1){
+  if(S.level<NLEV&&mastered(S.level)>=PER-1){
     S.level++;if(S.level>S.top)S.top=S.level;
     return 'Level up! Now level '+S.level+': '+esc(L[S.level-1])+'.';
   }
-  if(S.level===12&&mastered(12)>=PER-1&&!S.done){
-    S.done=true;return 'You cleared all 12 levels. The questions keep coming, mixed from every level, so nothing fades.';
+  if(S.level===NLEV&&mastered(NLEV)>=PER-1&&!S.done){
+    S.done=true;return 'You cleared all '+NLEV+' levels. The questions keep coming, mixed from every level, so nothing fades.';
   }
   return '';
 }
@@ -1414,9 +1701,9 @@ function wire(){
 
 function menu(){
   var h='<h1>Levels</h1><div class="card">',i;
-  for(i=1;i<=12;i++){h+='<div>'+(i===S.level?'&#9654; ':'')+'<b>'+i+'.</b> '+esc(L[i-1])+' <span class="small">('+mastered(i)+'/'+PER+')</span></div>';}
+  for(i=1;i<=NLEV;i++){h+='<div>'+(i===S.level?'&#9654; ':'')+'<b>'+i+'.</b> '+esc(L[i-1])+' <span class="small">('+mastered(i)+'/'+PER+')</span></div>';}
   h+='</div><div class="card small">Jump to a level (your progress there is kept): <select id="jmp">';
-  for(i=1;i<=12;i++)h+='<option value="'+i+'"'+(i===S.level?' selected':'')+'>'+i+'. '+esc(L[i-1])+'</option>';
+  for(i=1;i<=NLEV;i++)h+='<option value="'+i+'"'+(i===S.level?' selected':'')+'>'+i+'. '+esc(L[i-1])+'</option>';
   h+='</select><button class="go" id="go">Go</button><button id="rst">Reset all progress</button></div><button class="go" id="back">Back to questions</button>';
   app.innerHTML=h;
   document.getElementById('go').onclick=function(){S.level=parseInt(document.getElementById('jmp').value,10);cur=null;save();render();};
